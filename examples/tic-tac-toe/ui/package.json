@@ -1,5 +1,5 @@
 {
-  "name": "ui",
+  "name": "tic-tac-toe",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,8 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@mysten/dapp-kit": "0.14.3",
-    "@mysten/sui": "1.0.3",
+    "@mysten/dapp-kit": "0.14.9",
+    "@mysten/sui": "1.1.2",
     "@radix-ui/colors": "^3.0.0",
     "@radix-ui/react-icons": "^1.3.0",
     "@radix-ui/themes": "^2.0.0",
