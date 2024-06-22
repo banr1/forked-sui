@@ -1,9 +1,17 @@
 import { ConnectButton } from "@mysten/dapp-kit";
 import { FrameIcon } from "@radix-ui/react-icons";
-import { Box, Container, Flex, Heading } from "@radix-ui/themes";
-import { WalletStatus } from "./WalletStatus";
+import { Box, Container, Flex, Heading, Text } from "@radix-ui/themes";
+import { isValidSuiAddress, normalizeSuiObjectId } from "@mysten/sui/utils";
 
 function App() {
+  const path = location.pathname.slice(1);
+  const addr = normalizeSuiObjectId(path);
+  const content = path === ""
+    ? <Text>New game dialog</Text>
+    : isValidSuiAddress(addr)
+      ? <Text>Game board for {addr} / {path}</Text>
+      : <Text>Invalid address</Text>;
+
   return (
     <>
       <Flex
@@ -23,14 +31,7 @@ function App() {
         </Box>
       </Flex>
       <Container>
-        <Container
-          mt="5"
-          pt="2"
-          px="4"
-          style={{ background: "var(--gray-a2)", minHeight: 500 }}
-        >
-          <WalletStatus />
-        </Container>
+        {content}
       </Container>
     </>
   );
