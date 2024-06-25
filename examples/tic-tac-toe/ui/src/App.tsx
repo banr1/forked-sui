@@ -4,8 +4,9 @@
 import { ConnectButton } from "@mysten/dapp-kit";
 import { FrameIcon } from "@radix-ui/react-icons";
 import { Box, Container, Flex, Heading, Text } from "@radix-ui/themes";
-import { isValidSuiAddress, normalizeSuiObjectId } from "@mysten/sui/utils";
+import { isValidSuiObjectId, normalizeSuiObjectId } from "@mysten/sui/utils";
 import Error from "./Error.tsx";
+import Game from "./Game.tsx";
 
 function App() {
   return (
@@ -39,8 +40,8 @@ function Content() {
 
   if (path === "") {
     return <Text>New game dialog</Text>;
-  } else if (isValidSuiAddress(addr)) {
-    return <Text>Game board for {addr} / {path}</Text>;
+  } else if (isValidSuiObjectId(addr)) {
+    return <Game id={addr} />;
   } else {
     return (
       <Error title="Invalid address">
