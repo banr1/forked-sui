@@ -5,6 +5,7 @@ import { ConnectButton } from "@mysten/dapp-kit";
 import { FrameIcon } from "@radix-ui/react-icons";
 import { Box, Container, Flex, Heading, Text } from "@radix-ui/themes";
 import { isValidSuiAddress, normalizeSuiObjectId } from "@mysten/sui/utils";
+import Error from "./Error.tsx";
 
 function App() {
   return (
@@ -25,7 +26,7 @@ function App() {
           <ConnectButton />
         </Box>
       </Flex>
-      <Container>
+      <Container size="1" mt="8">
         <Content />
       </Container>
     </>
@@ -41,7 +42,13 @@ function Content() {
   } else if (isValidSuiAddress(addr)) {
     return <Text>Game board for {addr} / {path}</Text>;
   } else {
-    return <Text>Invalid address</Text>;
+    return (
+      <Error title="Invalid address">
+        <Text>
+          The address <code>"{path}"</code> is not a valid SUI object ID.
+        </Text>
+      </Error>
+    );
   }
 }
 
