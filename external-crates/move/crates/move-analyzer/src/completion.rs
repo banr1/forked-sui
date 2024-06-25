@@ -641,7 +641,7 @@ fn cursor_completion_items(
                 _ => (vec![], false),
             }
         }
-        // Cqrve out to suggest UID for struct with key ability
+        // Carve out to suggest UID for struct with key ability
         Some(Tok::LBrace) => (
             context_specific_lbrace(symbols, cursor).unwrap_or_default(),
             true,
