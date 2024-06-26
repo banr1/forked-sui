@@ -1,6 +1,7 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
+import { useCurrentAccount } from '@mysten/dapp-kit';
 import { isValidSuiAddress, normalizeSuiAddress } from '@mysten/sui/utils';
 import { ExclamationTriangleIcon, GlobeIcon, LockClosedIcon } from '@radix-ui/react-icons';
 import {
@@ -21,21 +22,13 @@ import { ReactElement, useState } from 'react';
  * Landing page for the root path. Displays a form for creating a new game.
  */
 export default function Root(): ReactElement {
-	const [isValid, setValid] = useState(false);
+	const player = useCurrentAccount();
 
-	const onChange = (event: any) => {
-		let value = event?.nativeEvent?.target?.value?.trim();
-		setValid(value != null && isValidSuiAddress(normalizeSuiAddress(value)));
-	};
+	const [opponent, setOpponent] = useState<string | null>(null);
 
-	const validationError = !isValid ? (
-		<Flex align="center" gap="2">
-			<ExclamationTriangleIcon color="red" />
-			<Text color="red">Invalid opponent address.</Text>
-		</Flex>
-	) : (
-		<Box />
-	);
+	const hasPlayer = player != null;
+	const hasOpponent = opponent != null;
+	const isValid = hasPlayer && hasOpponent;
 
 	return (
 		<Container m="2">
@@ -49,9 +42,9 @@ export default function Root(): ReactElement {
 				mb="2"
 				placeholder="Opponent address"
 				style={{ width: '100%' }}
-				color={isValid ? undefined : 'red'}
-				variant={isValid ? 'surface' : 'soft'}
-				onChange={onChange}
+				color={hasOpponent ? undefined : 'red'}
+				variant={hasOpponent ? 'surface' : 'soft'}
+				onChange={(e) => setOpponent(normalizedAddress(e.target.value))}
 			/>
 			<SegmentedControl.Root id="kind" defaultValue="multisig" mb="2" style={{ width: '100%' }}>
 				<Kind value="multisig" icon={<LockClosedIcon />} label="Multi-sig">
@@ -64,13 +57,39 @@ export default function Root(): ReactElement {
 				</Kind>
 			</SegmentedControl.Root>
 			<Flex justify="between" mt="4">
-				{validationError}
+				<Validation hasPlayer={hasPlayer} hasOpponent={hasOpponent} />
 				<Button variant="outline" disabled={!isValid}>
 					Play
 				</Button>
 			</Flex>
 		</Container>
 	);
+}
+
+function Validation({
+	hasPlayer,
+	hasOpponent,
+}: {
+	hasPlayer: boolean,
+	hasOpponent: boolean,
+}): ReactElement {
+	if (!hasPlayer) {
+		return (
+			<Flex align="center" gap="2">
+				<ExclamationTriangleIcon color="red" />
+				<Text color="red">Wallet not connected.</Text>
+			</Flex>
+		);
+	} else if (!hasOpponent) {
+		return (
+			<Flex align="center" gap="2">
+				<ExclamationTriangleIcon color="red" />
+				<Text color="red">Invalid opponent address.</Text>
+			</Flex>
+		);
+	} else {
+		return <Box />;
+	}
 }
 
 /**
@@ -105,4 +124,22 @@ function Kind({
 			</HoverCard.Root>
 		</SegmentedControl.Item>
 	);
+}
+
+/**
+ * If `address` is a valid denormalized address, return it in its
+ * normalized form, and otherwise return null.
+ */
+function normalizedAddress(address?: string): string | null {
+	if (address == null) {
+		return null;
+	}
+
+	address = address.trim();
+	if (address == "") {
+		return null;
+	}
+
+	address = normalizeSuiAddress(address);
+	return isValidSuiAddress(address) ? address : null;
 }
