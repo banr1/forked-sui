@@ -1,19 +1,23 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-import "./Game.css";
+import './Game.css';
 
-import { CircleIcon, Cross1Icon, TrashIcon } from "@radix-ui/react-icons";
-import { AlertDialog, Badge, Box, Button, Flex } from "@radix-ui/themes";
-import { ReactElement } from "react";
-import IDLink from "./IDLink";
-import { useCurrentAccount } from "@mysten/dapp-kit";
+import { useCurrentAccount } from '@mysten/dapp-kit';
+import { CircleIcon, Cross1Icon, TrashIcon } from '@radix-ui/react-icons';
+import { AlertDialog, Badge, Box, Button, Flex } from '@radix-ui/themes';
+import { ReactElement } from 'react';
+
+import IDLink from './IDLink';
 
 type Props = {
 	id: string;
 };
 
-enum Player { X, O };
+enum Player {
+	X,
+	O,
+}
 type Cell = Player | null;
 type Board = Cell[][];
 
@@ -30,8 +34,8 @@ export default function Game({ id }: Props): ReactElement {
 	// TODO: Wire through real data
 	const board = [
 		[Player.X, Player.O, Player.X],
-		[null,     Player.O, null],
-		[null,     Player.O, Player.X]
+		[null, Player.O, null],
+		[null, Player.O, Player.X],
 	];
 
 	return (
@@ -73,11 +77,17 @@ function Cell({ cell }: { cell: Cell }): ReactElement {
 	}
 }
 
-function MoveIndicator({ currPlayer, nextPlayer }: { currPlayer: String, nextPlayer: string }): ReactElement {
+function MoveIndicator({
+	currPlayer,
+	nextPlayer,
+}: {
+	currPlayer: String;
+	nextPlayer: string;
+}): ReactElement {
 	const account = useCurrentAccount();
 	if (account?.address === currPlayer) {
 		return <Badge color="green">Your turn</Badge>;
-	} else if (account?.address === nextPlayer){
+	} else if (account?.address === nextPlayer) {
 		return <Badge color="orange">Their turn</Badge>;
 	} else {
 		return <Badge color="blue">Spectating</Badge>;
@@ -95,21 +105,24 @@ function DeleteButton({ id: _ }: { id: string }): ReactElement {
 				</Button>
 			</AlertDialog.Trigger>
 			<AlertDialog.Content>
-				<AlertDialog.Title>
-					Delete Game
-				</AlertDialog.Title>
+				<AlertDialog.Title>Delete Game</AlertDialog.Title>
 				<AlertDialog.Description>
-					Are you sure you want to delete this game? This will delete the object from the blockchain and cannot be undone.
+					Are you sure you want to delete this game? This will delete the object from the blockchain
+					and cannot be undone.
 				</AlertDialog.Description>
 				<Flex gap="3" mt="3" justify="end">
 					<AlertDialog.Cancel>
-						<Button variant="soft" color="gray">Cancel</Button>
+						<Button variant="soft" color="gray">
+							Cancel
+						</Button>
 					</AlertDialog.Cancel>
 					<AlertDialog.Action>
-						<Button variant="solid" color="red">Delete</Button>
+						<Button variant="solid" color="red">
+							Delete
+						</Button>
 					</AlertDialog.Action>
 				</Flex>
 			</AlertDialog.Content>
-	  </AlertDialog.Root>
+		</AlertDialog.Root>
 	);
 }

@@ -1,15 +1,16 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-import { ReactElement, useState } from "react";
-import { useNetworkVariable } from "./config";
-import { Button, Flex, Link, Tooltip } from "@radix-ui/themes";
-import { CheckIcon, CopyIcon } from "@radix-ui/react-icons";
-import toast from "react-hot-toast";
+import { CheckIcon, CopyIcon } from '@radix-ui/react-icons';
+import { Button, Flex, Link, Tooltip } from '@radix-ui/themes';
+import { ReactElement, useState } from 'react';
+import toast from 'react-hot-toast';
+
+import { useNetworkVariable } from './config';
 
 type Props = {
 	id: string;
-	size?: "1" | "2" | "3" | "4";
+	size?: '1' | '2' | '3' | '4';
 };
 
 /**
@@ -23,24 +24,26 @@ type Props = {
  * Radix's size units.
  */
 export default function IDLink({ id, size }: Props): ReactElement {
-	const explorer = useNetworkVariable("explorer");
-	size = size ?? "1";
+	const explorer = useNetworkVariable('explorer');
+	size = size ?? '1';
 
 	const [copied, setCopied] = useState(false);
 	const onClick = async () => {
 		await navigator.clipboard.writeText(id);
 		setCopied(true);
 		setTimeout(() => setCopied(false), 1000);
-		toast.success("Copied ID to clipboard!");
+		toast.success('Copied ID to clipboard!');
 	};
 
 	return (
 		<Flex align="center">
 			<Tooltip content={id}>
-				<Link href={explorer(id)} target="_blank" size={size}>{truncateId(id)}</Link>
+				<Link href={explorer(id)} target="_blank" size={size}>
+					{truncateId(id)}
+				</Link>
 			</Tooltip>
 			<Tooltip content="Copy Object ID">
-				<Button size={size} ml="2" onClick={onClick} variant={copied ? "outline" : "soft"}>
+				<Button size={size} ml="2" onClick={onClick} variant={copied ? 'outline' : 'soft'}>
 					{copied ? <CheckIcon /> : <CopyIcon />}
 				</Button>
 			</Tooltip>
@@ -49,7 +52,5 @@ export default function IDLink({ id, size }: Props): ReactElement {
 }
 
 function truncateId(id: string) {
-	return id.length <= 9
-		? id
-		: id.slice(0, 3) + "..." + id.slice(-3);
+	return id.length <= 9 ? id : id.slice(0, 3) + '...' + id.slice(-3);
 }

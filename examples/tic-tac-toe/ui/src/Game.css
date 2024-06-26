@@ -1,10 +1,10 @@
 @import '@radix-ui/colors/gray.css';
 
 .board {
-    background-color: var(--gray-12);
+	background-color: var(--gray-12);
 }
 
 .board .cell {
-    background-color: var(--color-page-background);
-    color: var(--gray-12);
+	background-color: var(--color-page-background);
+	color: var(--gray-12);
 }
