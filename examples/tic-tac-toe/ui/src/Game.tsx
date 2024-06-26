@@ -41,7 +41,7 @@ export default function Game({ id }: Props): ReactElement {
 	return (
 		<>
 			<Board board={board} />
-			<Flex direction="row" gap="2" my="6" justify="between">
+			<Flex direction="row" gap="2" mx="2" my="6" justify="between">
 				<MoveIndicator currPlayer="0x123" nextPlayer="0x456" />
 				<DeleteButton id={id} />
 				<IDLink id={id} />
