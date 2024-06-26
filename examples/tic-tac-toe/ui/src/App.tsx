@@ -7,6 +7,7 @@ import { Box, Container, Flex, Heading, Text } from "@radix-ui/themes";
 import { isValidSuiObjectId, normalizeSuiObjectId } from "@mysten/sui/utils";
 import Error from "./Error.tsx";
 import Game from "./Game.tsx";
+import Root from "./Root.tsx";
 
 function App() {
   return (
@@ -39,7 +40,7 @@ function Content() {
   const addr = normalizeSuiObjectId(path);
 
   if (path === "") {
-    return <Text>New game dialog</Text>;
+    return <Root />;
   } else if (isValidSuiObjectId(addr)) {
     return <Game id={addr} />;
   } else {
