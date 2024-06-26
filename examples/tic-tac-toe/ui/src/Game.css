@@ -5,6 +5,6 @@
 }
 
 .board .cell {
-	background-color: var(--color-page-background);
+	background-color: var(--color-background);
 	color: var(--gray-12);
 }
