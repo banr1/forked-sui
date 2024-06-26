@@ -3,12 +3,14 @@
 
 import { createNetworkConfig } from '@mysten/dapp-kit';
 import { getFullnodeUrl } from '@mysten/sui/client';
+import LocalnetPackage from "./env.localnet.ts";
 
 const { networkConfig, useNetworkVariable } = createNetworkConfig({
 	localnet: {
 		url: getFullnodeUrl('localnet'),
 		variables: {
 			explorer: (id: string) => `https://suiscan.xyz/custom/object/${id}/?network=0.0.0.0%3A9000`,
+			...LocalnetPackage
 		},
 	},
 	devnet: {
