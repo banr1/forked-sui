@@ -17,7 +17,14 @@ type Props = {
 };
 
 /**
- * TODO: Docs
+ * Button to create a new game. `kind` controls whether it's a
+ * `shared` or an `owned` game and `player` and `opponent` are the two
+ * players for the game.
+ *
+ * `onCreateGame` is a callback that will be called with the ID of the
+ * game that was just created, (if/when that happens).
+ *
+ * The body of the button is customisable (exposed via nesting).
  */
 export default function CreateGame({
 	kind,
@@ -34,6 +41,8 @@ export default function CreateGame({
 	function onClick() {
 		const tx = new Transaction();
 
+		// SAFETY: The button is disabled unless player and opponent are
+		// available, so we should not receive a click for it.
 		const game = tx.moveCall({
 			target: `${packageId}::${kind}::new`,
 			arguments: [tx.pure.address(player!!), tx.pure.address(opponent!!)],
