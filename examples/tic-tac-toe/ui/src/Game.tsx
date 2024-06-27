@@ -29,6 +29,12 @@ enum Player {
 	O,
 }
 
+enum Turn {
+	Spectating,
+	Yours,
+	Theirs,
+}
+
 type Cell = Player;
 type Marks = Cell[][];
 
@@ -74,17 +80,28 @@ export default function Game({ id }: Props): ReactElement {
 
 	const kind = mType[1];
 	const { board, turn, x, o } = content.fields as Game;
-	const [curr, next] = turn % 2 == 0 ? [x, o] : [o, x];
+	const [mark, curr, next] = turn % 2 == 0 ? [Player.X, x, o] : [Player.O, o, x];
 
 	const marks = Array.from({ length: 3 }, (_, i) => {
 		return board.slice(i * 3, (i + 1) * 3) as Player[];
 	});
 
+	const onMove = (i: number, j: number) => {
+		console.log('Making move at ', i, j, 'on', kind, id);
+	};
+
+	const who = useTurn({ curr, next });
+
+	// If its the current account's turn, then empty cells should show
+	// the current player's mark on hover. Otherwise show nothing, and
+	// disable interactivity.
+	const empty = Turn.Yours == who ? mark : Player._;
+
 	return (
 		<>
-			<Board marks={marks} />
+			<Board marks={marks} empty={empty} onMove={onMove} />
 			<Flex direction="row" gap="2" mx="2" my="6" justify="between">
-				<MoveIndicator currPlayer={curr} nextPlayer={next} />
+				<MoveIndicator turn={who} />
 				<DeleteButton id={id} />
 				<IDLink id={id} />
 			</Flex>
@@ -92,13 +109,21 @@ export default function Game({ id }: Props): ReactElement {
 	);
 }
 
-function Board({ marks }: { marks: Marks }): ReactElement {
+function Board({
+	marks,
+	empty,
+	onMove,
+}: {
+	marks: Marks;
+	empty: Player;
+	onMove: (i: number, j: number) => void;
+}): ReactElement {
 	return (
 		<Flex direction="column" gap="2" className="board" mb="2">
-			{marks.map((row, i) => (
-				<Flex direction="row" gap="2" key={i}>
-					{row.map((cell, j) => (
-						<Cell key={j} cell={cell} />
+			{marks.map((row, j) => (
+				<Flex direction="row" gap="2" key={j}>
+					{row.map((cell, i) => (
+						<Cell key={i} cell={cell} empty={empty} onMove={() => onMove(i, j)} />
 					))}
 				</Flex>
 			))}
@@ -106,34 +131,55 @@ function Board({ marks }: { marks: Marks }): ReactElement {
 	);
 }
 
-function Cell({ cell }: { cell: Cell }): ReactElement {
-	// TODO: Empty boxes should display a ghost image of an X or O if
-	// the viewer is the current player, and should be clickable to
-	// issue that transaction.
+function Cell({
+	cell,
+	empty,
+	onMove,
+}: {
+	cell: Cell;
+	empty: Player;
+	onMove: () => void;
+}): ReactElement {
 	switch (cell) {
 		case Player.X:
 			return <Cross1Icon className="cell" width="100%" height="100%" />;
 		case Player.O:
 			return <CircleIcon className="cell" width="100%" height="100%" />;
 		case Player._:
-			return <Box className="cell" />;
+			return <EmptyCell empty={empty} onMove={onMove} />;
 	}
 }
 
-function MoveIndicator({
-	currPlayer,
-	nextPlayer,
-}: {
-	currPlayer: String;
-	nextPlayer: string;
-}): ReactElement {
+function EmptyCell({ empty, onMove }: { empty: Player; onMove: () => void }): ReactElement | null {
+	switch (empty) {
+		case Player.X:
+			return <Cross1Icon className="cell empty" width="100%" height="100%" onClick={onMove} />;
+		case Player.O:
+			return <CircleIcon className="cell empty" width="100%" height="100%" onClick={onMove} />;
+		case Player._:
+			return <Box className="cell empty" width="100%" height="100%" />;
+	}
+}
+
+function useTurn({ curr, next }: { curr: string; next: string }): Turn {
 	const account = useCurrentAccount();
-	if (account?.address === currPlayer) {
-		return <Badge color="green">Your turn</Badge>;
-	} else if (account?.address === nextPlayer) {
-		return <Badge color="orange">Their turn</Badge>;
+	if (account?.address === curr) {
+		return Turn.Yours;
+	} else if (account?.address == next) {
+		return Turn.Theirs;
 	} else {
-		return <Badge color="blue">Spectating</Badge>;
+		return Turn.Spectating;
+	}
+}
+
+function MoveIndicator({ turn }: { turn: Turn }): ReactElement {
+	switch (turn) {
+		case Turn.Yours:
+			return <Badge color="green">Your turn</Badge>;
+		case Turn.Theirs:
+			return <Badge color="orange">Their turn</Badge>;
+		case Turn.Spectating:
+			return <Badge color="blue">Spectating</Badge>;
 	}
 }
 

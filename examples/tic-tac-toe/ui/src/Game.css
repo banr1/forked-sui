@@ -15,3 +15,11 @@
 	display: block;
 	padding-top: 100%;
 }
+
+.board .cell.empty {
+	color: var(--color-background);
+}
+
+.board .cell.empty:hover {
+	color: var(--gray-8);
+}
