@@ -48,6 +48,8 @@ type Marks = Cell[][];
  * - The ID of the game being played.
  */
 export default function Game({ id }: Props): ReactElement {
+  const account = useCurrentAccount();
+	const packageId = useNetworkVariable('packageId');
 	const response = useSuiClientQuery('getObject', {
 		id,
 		options: {
@@ -65,7 +67,6 @@ export default function Game({ id }: Props): ReactElement {
 		);
 	}
 
-	const packageId = useNetworkVariable('packageId');
 	const reType = new RegExp(`^${packageId}::(shared|owned)::Game`);
 	const { type, content } = data;
 
@@ -90,11 +91,11 @@ export default function Game({ id }: Props): ReactElement {
 		console.log('Making move at ', i, j, 'on', kind, id);
 	};
 
-	const who = useTurn({ curr, next });
 
 	// If its the current account's turn, then empty cells should show
 	// the current player's mark on hover. Otherwise show nothing, and
 	// disable interactivity.
+	const who = turnIndicator({ curr, next, addr: account?.address });
 	const empty = Turn.Yours == who ? mark : Player._;
 
 	return (
@@ -161,11 +162,15 @@ function EmptyCell({ empty, onMove }: { empty: Player; onMove: () => void }): Re
 	}
 }
 
-function useTurn({ curr, next }: { curr: string; next: string }): Turn {
-	const account = useCurrentAccount();
-	if (account?.address === curr) {
+/**
+ * Figure out whose turn it should be based on who the `curr`ent
+ * player is, who the `next` player is, and what the `addr`ess of the
+ * current account is.
+ */
+function turnIndicator({ curr, next, addr }: { curr: string; next: string; addr?: string }): Turn {
+	if (addr === curr) {
 		return Turn.Yours;
-	} else if (account?.address == next) {
+	} else if (addr === next) {
 		return Turn.Theirs;
 	} else {
 		return Turn.Spectating;
