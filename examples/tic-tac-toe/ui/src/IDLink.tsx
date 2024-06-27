@@ -11,6 +11,7 @@ import { useNetworkVariable } from './config';
 type Props = {
 	id: string;
 	size?: '1' | '2' | '3' | '4';
+	display?: 'none' | 'flex' | 'inline-flex';
 };
 
 /**
@@ -23,7 +24,7 @@ type Props = {
  * The optional `size` parameter controls how big the ID is, in
  * Radix's size units.
  */
-export default function IDLink({ id, size }: Props): ReactElement {
+export default function IDLink({ id, size, display }: Props): ReactElement {
 	const explorer = useNetworkVariable('explorer');
 	size = size ?? '1';
 
@@ -36,7 +37,7 @@ export default function IDLink({ id, size }: Props): ReactElement {
 	};
 
 	return (
-		<Flex align="center">
+		<Flex align="center" display={display}>
 			<Tooltip content={id}>
 				<Link href={explorer(id)} target="_blank" size={size}>
 					{truncateId(id)}

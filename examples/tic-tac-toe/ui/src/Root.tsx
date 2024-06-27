@@ -71,7 +71,8 @@ export default function Root(): ReactElement {
 					opponent={opponent || undefined}
 					onCreateGame={(game) => {
 						window.location.href = `/${game}`;
-					}}>
+					}}
+				>
 					Play
 				</CreateGame>
 			</Flex>

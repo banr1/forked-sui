@@ -7,4 +7,11 @@
 .board .cell {
 	background-color: var(--color-background);
 	color: var(--gray-12);
+	width: 100%;
+}
+
+.board .cell::before {
+	content: '';
+	display: block;
+	padding-top: 100%;
 }

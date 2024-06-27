@@ -3,23 +3,34 @@
 
 import './Game.css';
 
-import { useCurrentAccount } from '@mysten/dapp-kit';
+import { useCurrentAccount, useSuiClientQuery } from '@mysten/dapp-kit';
 import { CircleIcon, Cross1Icon, TrashIcon } from '@radix-ui/react-icons';
 import { AlertDialog, Badge, Box, Button, Flex } from '@radix-ui/themes';
 import { ReactElement } from 'react';
 
+import { useNetworkVariable } from './config';
+import Error from './Error';
 import IDLink from './IDLink';
+
+type Game = {
+	board: number[];
+	turn: number;
+	x: string;
+	o: string;
+};
 
 type Props = {
 	id: string;
 };
 
 enum Player {
+	_,
 	X,
 	O,
 }
-type Cell = Player | null;
-type Board = Cell[][];
+
+type Cell = Player;
+type Marks = Cell[][];
 
 /**
  * Render the game at the given ID.
@@ -31,18 +42,49 @@ type Board = Cell[][];
  * - The ID of the game being played.
  */
 export default function Game({ id }: Props): ReactElement {
-	// TODO: Wire through real data
-	const board = [
-		[Player.X, Player.O, Player.X],
-		[null, Player.O, null],
-		[null, Player.O, Player.X],
-	];
+	const response = useSuiClientQuery('getObject', {
+		id,
+		options: {
+			showType: true,
+			showContent: true,
+		},
+	});
+
+	const data = response.data?.data;
+	if (!data) {
+		return (
+			<Error title="Failed to fetch game">
+				Could not load game at <IDLink id={id} size="2" display="inline-flex" />.
+			</Error>
+		);
+	}
+
+	const packageId = useNetworkVariable('packageId');
+	const reType = new RegExp(`^${packageId}::(shared|owned)::Game`);
+	const { type, content } = data;
+
+	let mType;
+	if (!type || !(mType = type.match(reType)) || !content || content.dataType != 'moveObject') {
+		return (
+			<Error title="Object is not a Game">
+				<IDLink id={id} size="2" display="inline-flex" /> is not a game.
+			</Error>
+		);
+	}
+
+	const kind = mType[1];
+	const { board, turn, x, o } = content.fields as Game;
+	const [curr, next] = turn % 2 == 0 ? [x, o] : [o, x];
+
+	const marks = Array.from({ length: 3 }, (_, i) => {
+		return board.slice(i * 3, (i + 1) * 3) as Player[];
+	});
 
 	return (
 		<>
-			<Board board={board} />
+			<Board marks={marks} />
 			<Flex direction="row" gap="2" mx="2" my="6" justify="between">
-				<MoveIndicator currPlayer="0x123" nextPlayer="0x456" />
+				<MoveIndicator currPlayer={curr} nextPlayer={next} />
 				<DeleteButton id={id} />
 				<IDLink id={id} />
 			</Flex>
@@ -50,10 +92,10 @@ export default function Game({ id }: Props): ReactElement {
 	);
 }
 
-function Board({ board }: { board: Board }): ReactElement {
+function Board({ marks }: { marks: Marks }): ReactElement {
 	return (
 		<Flex direction="column" gap="2" className="board" mb="2">
-			{board.map((row, i) => (
+			{marks.map((row, i) => (
 				<Flex direction="row" gap="2" key={i}>
 					{row.map((cell, j) => (
 						<Cell key={j} cell={cell} />
@@ -68,12 +110,13 @@ function Cell({ cell }: { cell: Cell }): ReactElement {
 	// TODO: Empty boxes should display a ghost image of an X or O if
 	// the viewer is the current player, and should be clickable to
 	// issue that transaction.
-	if (cell === Player.X) {
-		return <Cross1Icon className="cell" width="100%" height="100%" />;
-	} else if (cell === Player.O) {
-		return <CircleIcon className="cell" width="100%" height="100%" />;
-	} else {
-		return <Box className="cell" width="100%" />;
+	switch (cell) {
+		case Player.X:
+			return <Cross1Icon className="cell" width="100%" height="100%" />;
+		case Player.O:
+			return <CircleIcon className="cell" width="100%" height="100%" />;
+		case Player._:
+			return <Box className="cell" />;
 	}
 }
 
