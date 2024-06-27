@@ -6,7 +6,6 @@ import { isValidSuiAddress, normalizeSuiAddress } from '@mysten/sui/utils';
 import { ExclamationTriangleIcon, GlobeIcon, LockClosedIcon } from '@radix-ui/react-icons';
 import {
 	Box,
-	Button,
 	Container,
 	Flex,
 	Heading,
@@ -18,6 +17,8 @@ import {
 } from '@radix-ui/themes';
 import { ReactElement, useState } from 'react';
 
+import CreateGame from './CreateGame';
+
 /**
  * Landing page for the root path. Displays a form for creating a new game.
  */
@@ -25,10 +26,10 @@ export default function Root(): ReactElement {
 	const player = useCurrentAccount();
 
 	const [opponent, setOpponent] = useState<string | null>(null);
+	const [kind, setKind] = useState('owned');
 
 	const hasPlayer = player != null;
 	const hasOpponent = opponent != null;
-	const isValid = hasPlayer && hasOpponent;
 
 	return (
 		<Container m="2">
@@ -46,8 +47,14 @@ export default function Root(): ReactElement {
 				variant={hasOpponent ? 'surface' : 'soft'}
 				onChange={(e) => setOpponent(normalizedAddress(e.target.value))}
 			/>
-			<SegmentedControl.Root id="kind" defaultValue="multisig" mb="2" style={{ width: '100%' }}>
-				<Kind value="multisig" icon={<LockClosedIcon />} label="Multi-sig">
+			<SegmentedControl.Root
+				id="kind"
+				mb="2"
+				defaultValue={kind}
+				style={{ width: '100%' }}
+				onValueChange={setKind}
+			>
+				<Kind value="owned" icon={<LockClosedIcon />} label="Multi-sig">
 					Create a 1-of-2 multi-sig address to own the new game. Each move in the game requires two
 					fast path (single-owner) transactions.
 				</Kind>
@@ -58,9 +65,15 @@ export default function Root(): ReactElement {
 			</SegmentedControl.Root>
 			<Flex justify="between" mt="4">
 				<Validation hasPlayer={hasPlayer} hasOpponent={hasOpponent} />
-				<Button variant="outline" disabled={!isValid}>
+				<CreateGame
+					kind={kind}
+					player={player?.address}
+					opponent={opponent || undefined}
+					onCreateGame={(game) => {
+						window.location.href = `/${game}`;
+					}}>
 					Play
-				</Button>
+				</CreateGame>
 			</Flex>
 		</Container>
 	);
@@ -70,8 +83,8 @@ function Validation({
 	hasPlayer,
 	hasOpponent,
 }: {
-	hasPlayer: boolean,
-	hasOpponent: boolean,
+	hasPlayer: boolean;
+	hasOpponent: boolean;
 }): ReactElement {
 	if (!hasPlayer) {
 		return (
@@ -136,7 +149,7 @@ function normalizedAddress(address?: string): string | null {
 	}
 
 	address = address.trim();
-	if (address == "") {
+	if (address == '') {
 		return null;
 	}
 
