@@ -1,10 +1,12 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
+import './App.css';
+
 import { ConnectButton, useCurrentAccount, useSuiClientContext } from '@mysten/dapp-kit';
 import { isValidSuiObjectId, normalizeSuiObjectId } from '@mysten/sui/utils';
 import { FrameIcon } from '@radix-ui/react-icons';
-import { Box, Container, Flex, Heading, Text } from '@radix-ui/themes';
+import { Box, Container, Flex, Heading, Link, Text } from '@radix-ui/themes';
 
 import { networkConfig, useNetworkVariable } from './config.ts';
 import Error from './Error.tsx';
@@ -27,7 +29,11 @@ function App() {
 			<Flex position="sticky" px="4" py="2" align="center" justify="between">
 				<Flex align="center" gap="1">
 					<FrameIcon width={20} height={20} />
-					<Heading>Tic Tac Toe</Heading>
+					<Heading>
+						<Link href="/" className="home">
+							Tic Tac Toe
+						</Link>
+					</Heading>
 				</Flex>
 
 				<Box>
