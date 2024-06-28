@@ -15,6 +15,7 @@ import Error from './Error';
 import IDLink from './IDLink';
 import { Loading } from './Loading';
 import { Mark, useGameQuery } from './UseGameQuery';
+import { Trophy, useTrophyQuery } from './UseTrophyQuery';
 
 type Props = {
 	id: string;
@@ -24,6 +25,26 @@ enum Turn {
 	Spectating,
 	Yours,
 	Theirs,
+}
+
+enum Winner {
+	/** Nobody has won yet */
+	None,
+
+	/** X has won, and you are not a player */
+	X,
+
+	/** O has won, and you are not a player */
+	O,
+
+	/** You won */
+	You,
+
+	/** The other player won */
+	Them,
+
+	/** Game ended in a draw */
+	Draw,
 }
 
 /**
@@ -41,26 +62,45 @@ export default function Game({ id }: Props): ReactElement {
 
 	const client = useSuiClient();
 	const [game, invalidateGame] = useGameQuery(id);
+	const [trophy, invalidateTrophy] = useTrophyQuery(id, game?.data?.kind);
 	const { mutate: signAndExecute } = useSignAndExecuteTransaction();
 
 	if (game.status === 'pending') {
 		return <Loading />;
-	} else if (game.status == 'error') {
+	} else if (game.status === 'error') {
 		return (
-			<Error title={game.error.message}>
-				Could not load game at <IDLink id={id} size="2" display="inline-flex" />.
+			<Error title="Error loading game">
+				<p>
+					Could not load game at <IDLink id={id} size="2" display="inline-flex" />.
+				</p>
+				<p>{game.error.message}</p>
 			</Error>
 		);
 	}
 
+	if (trophy.status === 'pending') {
+		return <Loading />;
+	} else if (trophy.status === 'error') {
+		return (
+			<Error title="Error loading game">
+				<p>
+					Could not check win for <IDLink id={id} size="2" display="inline-flex" />:
+				</p>
+				<p>{trophy.error.message}.</p>
+			</Error>
+		);
+	}
+
+	const { data: endState } = trophy;
 	const { kind, board, turn, x, o } = game.data;
 	const [mark, curr, next] = turn % 2 == 0 ? [Mark.X, x, o] : [Mark.O, o, x];
 
 	// If its the current account's turn, then empty cells should show
 	// the current player's mark on hover. Otherwise show nothing, and
 	// disable interactivity.
-	const who = turnIndicator({ curr, next, addr: account?.address });
-	const empty = Turn.Yours == who ? mark : Mark._;
+	const player = whoseTurn({ curr, next, addr: account?.address });
+	const winner = whoWon({ curr, next, addr: account?.address, turn, trophy: endState });
+	const empty = Turn.Yours == player && endState === Trophy.None ? mark : Mark._;
 
 	const onMove = (row: number, col: number) => {
 		const tx = new Transaction();
@@ -81,7 +121,7 @@ export default function Game({ id }: Props): ReactElement {
 			},
 			{
 				onSuccess: ({ digest }) => {
-					client.waitForTransaction({ digest }).then(invalidateGame);
+					client.waitForTransaction({ digest }).then(invalidateGame).then(invalidateTrophy);
 				},
 
 				onError: (error) => {
@@ -95,8 +135,12 @@ export default function Game({ id }: Props): ReactElement {
 		<>
 			<Board marks={board} empty={empty} onMove={onMove} />
 			<Flex direction="row" gap="2" mx="2" my="6" justify="between">
-				<MoveIndicator turn={who} />
-				<DeleteButton id={id} />
+				{endState !== Trophy.None ? (
+					<WinIndicator winner={winner} />
+				) : (
+					<MoveIndicator turn={player} />
+				)}
+				{endState !== Trophy.None ? <DeleteButton id={id} /> : null}
 				<IDLink id={id} />
 			</Flex>
 		</>
@@ -108,13 +152,54 @@ export default function Game({ id }: Props): ReactElement {
  * player is, who the `next` player is, and what the `addr`ess of the
  * current account is.
  */
-function turnIndicator({ curr, next, addr }: { curr: string; next: string; addr?: string }): Turn {
+function whoseTurn({ curr, next, addr }: { curr: string; next: string; addr?: string }): Turn {
 	if (addr === curr) {
 		return Turn.Yours;
 	} else if (addr === next) {
 		return Turn.Theirs;
 	} else {
 		return Turn.Spectating;
+	}
+}
+
+/**
+ * Figure out who won the game, out of the `curr`ent, and `next`
+ * players, relative to whose asking (`addr`). `turns` indicates the
+ * number of turns we've seen so far, which is used to determine which
+ * address corresponds to player X and player O.
+ */
+function whoWon({
+	curr,
+	next,
+	addr,
+	turn: turn,
+	trophy,
+}: {
+	curr: string;
+	next: string;
+	addr?: string;
+	turn: number;
+	trophy: Trophy;
+}): Winner {
+	switch (trophy) {
+		case Trophy.None:
+			return Winner.None;
+		case Trophy.Draw:
+			return Winner.Draw;
+		case Trophy.Win:
+			// These tests are "backwards" because the game advances to the
+			// next turn after the win has happened. Nevertheless, make sure
+			// to test for the "you" case before the "them" case to handle a
+			// situation where a player is playing themselves.
+			if (addr === next) {
+				return Winner.You;
+			} else if (addr === curr) {
+				return Winner.Them;
+			} else if (turn % 2 == 0) {
+				return Winner.O;
+			} else {
+				return Winner.X;
+			}
 	}
 }
 
@@ -129,9 +214,25 @@ function MoveIndicator({ turn }: { turn: Turn }): ReactElement {
 	}
 }
 
+function WinIndicator({ winner }: { winner: Winner }): ReactElement | null {
+	switch (winner) {
+		case Winner.None:
+			return null;
+		case Winner.Draw:
+			return <Badge color="orange">Draw!</Badge>;
+		case Winner.You:
+			return <Badge color="green">You Win!</Badge>;
+		case Winner.Them:
+			return <Badge color="red">You Lose!</Badge>;
+		case Winner.X:
+			return <Badge color="blue">X Wins!</Badge>;
+		case Winner.O:
+			return <Badge color="blue">O Wins!</Badge>;
+	}
+}
+
 function DeleteButton({ id: _ }: { id: string }): ReactElement {
-	// TODO: This should only be enabled if the current account is able
-	// to delete the game (has permissions and the game is finished).
+	// TODO: Actually perform deletion.
 	return (
 		<AlertDialog.Root>
 			<AlertDialog.Trigger>
