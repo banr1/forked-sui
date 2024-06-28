@@ -140,7 +140,7 @@ export default function Game({ id }: Props): ReactElement {
 				) : (
 					<MoveIndicator turn={player} />
 				)}
-				{endState !== Trophy.None ? <DeleteButton id={id} /> : null}
+				{endState !== Trophy.None ? <DeleteButton id={id} kind={kind} /> : null}
 				<IDLink id={id} />
 			</Flex>
 		</>
@@ -231,8 +231,38 @@ function WinIndicator({ winner }: { winner: Winner }): ReactElement | null {
 	}
 }
 
-function DeleteButton({ id: _ }: { id: string }): ReactElement {
-	// TODO: Actually perform deletion.
+function DeleteButton({ id, kind }: { id: string; kind: string }): ReactElement {
+	const client = useSuiClient();
+	const packageId = useNetworkVariable('packageId');
+	const { mutate: signAndExecute } = useSignAndExecuteTransaction();
+
+	const onDelete = () => {
+		const tx = new Transaction();
+
+		tx.moveCall({
+			target: `${packageId}::${kind}::burn`,
+			arguments: [tx.object(id)],
+		});
+
+		signAndExecute(
+			{
+				transaction: tx,
+			},
+			{
+				onSuccess: ({ digest }) => {
+					client.waitForTransaction({ digest }).then(() => {
+						// Navigate back to homepage, because the game is gone now.
+						window.location.href = '/';
+					});
+				},
+
+				onError: (error) => {
+					console.error('Failed to execute transaction', error);
+				},
+			},
+		);
+	};
+
 	return (
 		<AlertDialog.Root>
 			<AlertDialog.Trigger>
@@ -252,7 +282,7 @@ function DeleteButton({ id: _ }: { id: string }): ReactElement {
 							Cancel
 						</Button>
 					</AlertDialog.Cancel>
-					<AlertDialog.Action>
+					<AlertDialog.Action onClick={onDelete}>
 						<Button variant="solid" color="red">
 							Delete
 						</Button>
