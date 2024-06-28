@@ -3,7 +3,8 @@
 
 import './Game.css';
 
-import { useCurrentAccount, useSuiClientQuery } from '@mysten/dapp-kit';
+import { useCurrentAccount, useSignAndExecuteTransaction, useSuiClient } from '@mysten/dapp-kit';
+import { Transaction } from '@mysten/sui/transactions';
 import { CircleIcon, Cross1Icon, TrashIcon } from '@radix-ui/react-icons';
 import { AlertDialog, Badge, Box, Button, Flex } from '@radix-ui/themes';
 import { ReactElement } from 'react';
@@ -11,6 +12,7 @@ import { ReactElement } from 'react';
 import { useNetworkVariable } from './config';
 import Error from './Error';
 import IDLink from './IDLink';
+import { useObject } from './UseObject';
 
 type Game = {
 	board: number[];
@@ -48,15 +50,15 @@ type Marks = Cell[][];
  * - The ID of the game being played.
  */
 export default function Game({ id }: Props): ReactElement {
-  const account = useCurrentAccount();
+	const account = useCurrentAccount();
 	const packageId = useNetworkVariable('packageId');
-	const response = useSuiClientQuery('getObject', {
+
+	const client = useSuiClient();
+	const [response, invalidateGame] = useObject({
 		id,
-		options: {
-			showType: true,
-			showContent: true,
-		},
+		options: { showType: true, showContent: true },
 	});
+	const { mutate: signAndExecute } = useSignAndExecuteTransaction();
 
 	const data = response.data?.data;
 	if (!data) {
@@ -87,10 +89,34 @@ export default function Game({ id }: Props): ReactElement {
 		return board.slice(i * 3, (i + 1) * 3) as Player[];
 	});
 
-	const onMove = (i: number, j: number) => {
-		console.log('Making move at ', i, j, 'on', kind, id);
-	};
+	const onMove = (row: number, col: number) => {
+		const tx = new Transaction();
 
+		if (kind === 'shared') {
+			tx.moveCall({
+				target: `${packageId}::${kind}::place_mark`,
+				arguments: [tx.object(id), tx.pure.u8(row), tx.pure.u8(col)],
+			});
+		} else if (kind == 'owned') {
+			console.log('Owned object variant not supported yet');
+			return;
+		}
+
+		signAndExecute(
+			{
+				transaction: tx,
+			},
+			{
+				onSuccess: ({ digest }) => {
+					client.waitForTransaction({ digest }).then(invalidateGame);
+				},
+
+				onError: (error) => {
+					console.error('Failed to execute transaction', error);
+				},
+			},
+		);
+	};
 
 	// If its the current account's turn, then empty cells should show
 	// the current player's mark on hover. Otherwise show nothing, and
@@ -121,10 +147,10 @@ function Board({
 }): ReactElement {
 	return (
 		<Flex direction="column" gap="2" className="board" mb="2">
-			{marks.map((row, j) => (
-				<Flex direction="row" gap="2" key={j}>
-					{row.map((cell, i) => (
-						<Cell key={i} cell={cell} empty={empty} onMove={() => onMove(i, j)} />
+			{marks.map((row, r) => (
+				<Flex direction="row" gap="2" key={r}>
+					{row.map((cell, c) => (
+						<Cell key={c} cell={cell} empty={empty} onMove={() => onMove(r, c)} />
 					))}
 				</Flex>
 			))}
