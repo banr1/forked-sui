@@ -5,21 +5,23 @@ import { useSuiClientContext, useSuiClientQuery } from '@mysten/dapp-kit';
 import { GetObjectParams, SuiObjectResponse } from '@mysten/sui/client';
 import { useQueryClient, UseQueryResult } from '@tanstack/react-query';
 
-type Response = UseQueryResult<SuiObjectResponse, Error>;
-type Invalidate = () => void;
+export type UseObjectQueryResponse = UseQueryResult<SuiObjectResponse, Error>;
+export type InvalidateUseObjectQuery = () => void;
 
 /**
  * Fetches an object, returning the response from RPC and a callback
  * to invalidate it.
  */
-export function useObject(params: GetObjectParams): [Response, Invalidate] {
+export function useObjectQuery(
+	params: GetObjectParams,
+): [UseObjectQueryResponse, InvalidateUseObjectQuery] {
 	const ctx = useSuiClientContext();
 	const client = useQueryClient();
 	const response = useSuiClientQuery('getObject', params);
 
-	const forceUpdate = async () => {
+	const invalidate = async () => {
 		await client.invalidateQueries({ queryKey: [ctx.network, 'getObject', params] });
 	};
 
-	return [response, forceUpdate];
+	return [response, invalidate];
 }

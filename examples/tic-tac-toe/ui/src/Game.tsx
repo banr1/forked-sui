@@ -5,40 +5,26 @@ import './Game.css';
 
 import { useCurrentAccount, useSignAndExecuteTransaction, useSuiClient } from '@mysten/dapp-kit';
 import { Transaction } from '@mysten/sui/transactions';
-import { CircleIcon, Cross1Icon, TrashIcon } from '@radix-ui/react-icons';
-import { AlertDialog, Badge, Box, Button, Flex } from '@radix-ui/themes';
+import { TrashIcon } from '@radix-ui/react-icons';
+import { AlertDialog, Badge, Button, Flex } from '@radix-ui/themes';
 import { ReactElement } from 'react';
 
+import { Board } from './Board';
 import { useNetworkVariable } from './config';
 import Error from './Error';
 import IDLink from './IDLink';
-import { useObject } from './UseObject';
-
-type Game = {
-	board: number[];
-	turn: number;
-	x: string;
-	o: string;
-};
+import { Loading } from './Loading';
+import { Mark, useGameQuery } from './UseGameQuery';
 
 type Props = {
 	id: string;
 };
-
-enum Player {
-	_,
-	X,
-	O,
-}
 
 enum Turn {
 	Spectating,
 	Yours,
 	Theirs,
 }
-
-type Cell = Player;
-type Marks = Cell[][];
 
 /**
  * Render the game at the given ID.
@@ -54,40 +40,27 @@ export default function Game({ id }: Props): ReactElement {
 	const packageId = useNetworkVariable('packageId');
 
 	const client = useSuiClient();
-	const [response, invalidateGame] = useObject({
-		id,
-		options: { showType: true, showContent: true },
-	});
+	const [game, invalidateGame] = useGameQuery(id);
 	const { mutate: signAndExecute } = useSignAndExecuteTransaction();
 
-	const data = response.data?.data;
-	if (!data) {
+	if (game.status === 'pending') {
+		return <Loading />;
+	} else if (game.status == 'error') {
 		return (
-			<Error title="Failed to fetch game">
+			<Error title={game.error.message}>
 				Could not load game at <IDLink id={id} size="2" display="inline-flex" />.
 			</Error>
 		);
 	}
 
-	const reType = new RegExp(`^${packageId}::(shared|owned)::Game`);
-	const { type, content } = data;
+	const { kind, board, turn, x, o } = game.data;
+	const [mark, curr, next] = turn % 2 == 0 ? [Mark.X, x, o] : [Mark.O, o, x];
 
-	let mType;
-	if (!type || !(mType = type.match(reType)) || !content || content.dataType != 'moveObject') {
-		return (
-			<Error title="Object is not a Game">
-				<IDLink id={id} size="2" display="inline-flex" /> is not a game.
-			</Error>
-		);
-	}
-
-	const kind = mType[1];
-	const { board, turn, x, o } = content.fields as Game;
-	const [mark, curr, next] = turn % 2 == 0 ? [Player.X, x, o] : [Player.O, o, x];
-
-	const marks = Array.from({ length: 3 }, (_, i) => {
-		return board.slice(i * 3, (i + 1) * 3) as Player[];
-	});
+	// If its the current account's turn, then empty cells should show
+	// the current player's mark on hover. Otherwise show nothing, and
+	// disable interactivity.
+	const who = turnIndicator({ curr, next, addr: account?.address });
+	const empty = Turn.Yours == who ? mark : Mark._;
 
 	const onMove = (row: number, col: number) => {
 		const tx = new Transaction();
@@ -118,15 +91,9 @@ export default function Game({ id }: Props): ReactElement {
 		);
 	};
 
-	// If its the current account's turn, then empty cells should show
-	// the current player's mark on hover. Otherwise show nothing, and
-	// disable interactivity.
-	const who = turnIndicator({ curr, next, addr: account?.address });
-	const empty = Turn.Yours == who ? mark : Player._;
-
 	return (
 		<>
-			<Board marks={marks} empty={empty} onMove={onMove} />
+			<Board marks={board} empty={empty} onMove={onMove} />
 			<Flex direction="row" gap="2" mx="2" my="6" justify="between">
 				<MoveIndicator turn={who} />
 				<DeleteButton id={id} />
@@ -134,58 +101,6 @@ export default function Game({ id }: Props): ReactElement {
 			</Flex>
 		</>
 	);
-}
-
-function Board({
-	marks,
-	empty,
-	onMove,
-}: {
-	marks: Marks;
-	empty: Player;
-	onMove: (i: number, j: number) => void;
-}): ReactElement {
-	return (
-		<Flex direction="column" gap="2" className="board" mb="2">
-			{marks.map((row, r) => (
-				<Flex direction="row" gap="2" key={r}>
-					{row.map((cell, c) => (
-						<Cell key={c} cell={cell} empty={empty} onMove={() => onMove(r, c)} />
-					))}
-				</Flex>
-			))}
-		</Flex>
-	);
-}
-
-function Cell({
-	cell,
-	empty,
-	onMove,
-}: {
-	cell: Cell;
-	empty: Player;
-	onMove: () => void;
-}): ReactElement {
-	switch (cell) {
-		case Player.X:
-			return <Cross1Icon className="cell" width="100%" height="100%" />;
-		case Player.O:
-			return <CircleIcon className="cell" width="100%" height="100%" />;
-		case Player._:
-			return <EmptyCell empty={empty} onMove={onMove} />;
-	}
-}
-
-function EmptyCell({ empty, onMove }: { empty: Player; onMove: () => void }): ReactElement | null {
-	switch (empty) {
-		case Player.X:
-			return <Cross1Icon className="cell empty" width="100%" height="100%" onClick={onMove} />;
-		case Player.O:
-			return <CircleIcon className="cell empty" width="100%" height="100%" onClick={onMove} />;
-		case Player._:
-			return <Box className="cell empty" width="100%" height="100%" />;
-	}
 }
 
 /**
