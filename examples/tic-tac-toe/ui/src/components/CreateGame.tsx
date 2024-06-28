@@ -5,10 +5,12 @@ import { useSignAndExecuteTransaction, useSuiClient } from '@mysten/dapp-kit';
 import { Transaction } from '@mysten/sui/transactions';
 import { Button } from '@radix-ui/themes';
 import { useNetworkVariable } from 'config';
+import { Kind } from 'hooks/useGameQuery';
+import { useTransactions } from 'hooks/useTransactions';
 import { ReactElement, ReactNode } from 'react';
 
 type Props = {
-	kind?: string;
+	kind?: Kind;
 	player?: string;
 	opponent?: string;
 	onCreateGame: (gameId: string) => void;
@@ -33,28 +35,17 @@ export function CreateGame({
 	children,
 }: Props): ReactElement {
 	const client = useSuiClient();
-	// SAFETY: <App /> tests that the packageId is available.
-	const packageId = useNetworkVariable('packageId')!!;
+	// SAFETY: <App /> tests that a package exists, so Transactions
+	// builder should be available.
+	const tx = useTransactions()!!;
 	const { mutate: signAndExecute } = useSignAndExecuteTransaction();
 
 	function onClick() {
-		const tx = new Transaction();
-
-		// SAFETY: The button is disabled unless player and opponent are
-		// available, so we should not receive a click for it.
-		const game = tx.moveCall({
-			target: `${packageId}::${kind}::new`,
-			arguments: [tx.pure.address(player!!), tx.pure.address(opponent!!)],
-		});
-
-		if (kind == 'owned') {
-			// TODO: Transfer to multi-sig in "owned" case.
-			tx.transferObjects([game], player!!);
-		}
-
 		signAndExecute(
 			{
-				transaction: tx,
+				// SAFETY: The button is disabled unless kind, player and
+				// opponent are available.
+				transaction: tx.newGame(kind!!, player!!, opponent!!),
 			},
 			{
 				onSuccess: ({ digest }) => {

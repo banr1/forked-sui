@@ -2,11 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useSuiClient } from '@mysten/dapp-kit';
-import { Transaction } from '@mysten/sui/transactions';
 import { normalizeSuiAddress } from '@mysten/sui/utils';
 import { useQuery, useQueryClient, UseQueryResult } from '@tanstack/react-query';
-import { useNetworkVariable } from 'config';
-import { Kind } from 'hooks/useGameQuery';
+import { Game } from 'hooks/useGameQuery';
+import { useTransactions } from 'hooks/useTransactions';
 
 export enum Trophy {
 	None = 0,
@@ -26,29 +25,19 @@ export type InvalidateTrophy = () => void;
  * depends on the value of `kind` (will not be enabled unless `kind`
  * is available).
  */
-export function useTrophyQuery(
-	id: string,
-	kind?: Kind,
-): [UseTrophyQueryResponse, InvalidateTrophy] {
+export function useTrophyQuery(game?: Game): [UseTrophyQueryResponse, InvalidateTrophy] {
 	const client = useSuiClient();
 	const queryClient = useQueryClient();
-	const packageId = useNetworkVariable('packageId');
+	const tx = useTransactions()!!;
 
 	const response = useQuery({
-		enabled: !!kind,
-		queryKey: ['game-end-state', id],
+		enabled: !!game,
+		queryKey: ['game-end-state', game?.id],
 		queryFn: async () => {
-			const tx = new Transaction();
-
-			tx.moveCall({
-				target: `${packageId}::${kind}::ended`,
-				arguments: [tx.object(id)],
-			});
-
 			const { results } = await client.devInspectTransactionBlock({
 				// It doesn't matter who's sending this query.
 				sender: normalizeSuiAddress('0x0'),
-				transactionBlock: tx,
+				transactionBlock: tx.ended(game!!),
 			});
 
 			const trophy = results?.[0]?.returnValues?.[0]?.[0]?.[0];
@@ -61,7 +50,7 @@ export function useTrophyQuery(
 	});
 
 	const invalidate = async () => {
-		await queryClient.invalidateQueries({ queryKey: ['game-end-state', id] });
+		await queryClient.invalidateQueries({ queryKey: ['game-end-state', game?.id] });
 	};
 
 	return [response, invalidate];

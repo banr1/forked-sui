@@ -20,6 +20,9 @@ export enum Mark {
 
 /** State of the game, deserialized from its Move Object */
 export type Game = {
+	/** The game's Object ID */
+	id: string;
+
 	/** Whether it's a 'shared' or an 'owned' game */
 	kind: Kind;
 
@@ -76,7 +79,7 @@ export function useGameQuery(id: string): [UseGameQueryResult, InvalidateGameQue
 
 	const success = {
 		...response,
-		data: { kind, board, turn, x, o },
+		data: { id, kind, board, turn, x, o },
 	};
 
 	return [success as UseGameQueryResult, invalidate];

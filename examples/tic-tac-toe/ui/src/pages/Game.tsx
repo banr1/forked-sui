@@ -4,15 +4,14 @@
 import './Game.css';
 
 import { useCurrentAccount, useSignAndExecuteTransaction, useSuiClient } from '@mysten/dapp-kit';
-import { Transaction } from '@mysten/sui/transactions';
 import { TrashIcon } from '@radix-ui/react-icons';
 import { AlertDialog, Badge, Button, Flex } from '@radix-ui/themes';
 import { Board } from 'components/Board';
 import { Error } from 'components/Error';
 import { IDLink } from 'components/IDLink';
 import { Loading } from 'components/Loading';
-import { useNetworkVariable } from 'config';
-import { Mark, useGameQuery } from 'hooks/useGameQuery';
+import { Game as GameData, Mark, useGameQuery } from 'hooks/useGameQuery';
+import { useTransactions } from 'hooks/useTransactions';
 import { Trophy, useTrophyQuery } from 'hooks/useTrophyQuery';
 import { ReactElement } from 'react';
 
@@ -57,11 +56,11 @@ enum Winner {
  */
 export default function Game({ id }: Props): ReactElement {
 	const account = useCurrentAccount();
-	const packageId = useNetworkVariable('packageId');
+	const tx = useTransactions()!!;
 
 	const client = useSuiClient();
 	const [game, invalidateGame] = useGameQuery(id);
-	const [trophy, invalidateTrophy] = useTrophyQuery(id, game?.data?.kind);
+	const [trophy, invalidateTrophy] = useTrophyQuery(game?.data);
 	const { mutate: signAndExecute } = useSignAndExecuteTransaction();
 
 	if (game.status === 'pending') {
@@ -91,7 +90,7 @@ export default function Game({ id }: Props): ReactElement {
 	}
 
 	const { data: endState } = trophy;
-	const { kind, board, turn, x, o } = game.data;
+	const { board, turn, x, o } = game.data;
 	const [mark, curr, next] = turn % 2 == 0 ? [Mark.X, x, o] : [Mark.O, o, x];
 
 	// If its the current account's turn, then empty cells should show
@@ -102,21 +101,9 @@ export default function Game({ id }: Props): ReactElement {
 	const empty = Turn.Yours == player && endState === Trophy.None ? mark : Mark._;
 
 	const onMove = (row: number, col: number) => {
-		const tx = new Transaction();
-
-		if (kind === 'shared') {
-			tx.moveCall({
-				target: `${packageId}::${kind}::place_mark`,
-				arguments: [tx.object(id), tx.pure.u8(row), tx.pure.u8(col)],
-			});
-		} else if (kind == 'owned') {
-			console.log('Owned object variant not supported yet');
-			return;
-		}
-
 		signAndExecute(
 			{
-				transaction: tx,
+				transaction: tx.placeMark(game.data, row, col),
 			},
 			{
 				onSuccess: ({ digest }) => {
@@ -139,7 +126,7 @@ export default function Game({ id }: Props): ReactElement {
 				) : (
 					<MoveIndicator turn={player} />
 				)}
-				{endState !== Trophy.None ? <DeleteButton id={id} kind={kind} /> : null}
+				{endState !== Trophy.None ? <DeleteButton game={game?.data} /> : null}
 				<IDLink id={id} />
 			</Flex>
 		</>
@@ -230,22 +217,15 @@ function WinIndicator({ winner }: { winner: Winner }): ReactElement | null {
 	}
 }
 
-function DeleteButton({ id, kind }: { id: string; kind: string }): ReactElement {
+function DeleteButton({ game }: { game: GameData }): ReactElement {
+	const tx = useTransactions()!!;
 	const client = useSuiClient();
-	const packageId = useNetworkVariable('packageId');
 	const { mutate: signAndExecute } = useSignAndExecuteTransaction();
 
 	const onDelete = () => {
-		const tx = new Transaction();
-
-		tx.moveCall({
-			target: `${packageId}::${kind}::burn`,
-			arguments: [tx.object(id)],
-		});
-
 		signAndExecute(
 			{
-				transaction: tx,
+				transaction: tx.burn(game),
 			},
 			{
 				onSuccess: ({ digest }) => {
