@@ -2,9 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { Flex, Spinner, Text } from '@radix-ui/themes';
-
-import { Board } from './Board';
-import { Mark } from './UseGameQuery';
+import { Board } from 'components/Board';
+import { Mark } from 'hooks/useGameQuery';
 
 /**
  * Component designed to represent the null-state of a Game, to be

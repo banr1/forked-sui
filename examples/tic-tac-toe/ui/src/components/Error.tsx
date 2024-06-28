@@ -15,7 +15,7 @@ interface Props {
  * `title` is displayed as a heading and the `children` are displayed
  * underneath.
  */
-export default function Error({ title, children }: Props): ReactElement {
+export function Error({ title, children }: Props): ReactElement {
 	return (
 		<Container size="1" px="2">
 			<Callout.Root color="red" role="alert" size="3" variant="surface">

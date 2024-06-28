@@ -4,9 +4,8 @@
 import { useSignAndExecuteTransaction, useSuiClient } from '@mysten/dapp-kit';
 import { Transaction } from '@mysten/sui/transactions';
 import { Button } from '@radix-ui/themes';
+import { useNetworkVariable } from 'config';
 import { ReactElement, ReactNode } from 'react';
-
-import { useNetworkVariable } from './config';
 
 type Props = {
 	kind?: string;
@@ -26,7 +25,7 @@ type Props = {
  *
  * The body of the button is customisable (exposed via nesting).
  */
-export default function CreateGame({
+export function CreateGame({
 	kind,
 	player,
 	opponent,

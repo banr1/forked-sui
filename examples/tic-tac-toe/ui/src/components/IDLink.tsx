@@ -3,10 +3,9 @@
 
 import { CheckIcon, CopyIcon } from '@radix-ui/react-icons';
 import { Button, Flex, Link, Tooltip } from '@radix-ui/themes';
+import { useNetworkVariable } from 'config';
 import { ReactElement, useState } from 'react';
 import toast from 'react-hot-toast';
-
-import { useNetworkVariable } from './config';
 
 type Props = {
 	id: string;
@@ -24,7 +23,7 @@ type Props = {
  * The optional `size` parameter controls how big the ID is, in
  * Radix's size units.
  */
-export default function IDLink({ id, size, display }: Props): ReactElement {
+export function IDLink({ id, size, display }: Props): ReactElement {
 	const explorer = useNetworkVariable('explorer');
 	size = size ?? '1';
 

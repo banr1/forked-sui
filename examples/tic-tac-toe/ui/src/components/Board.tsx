@@ -3,9 +3,8 @@
 
 import { CircleIcon, Cross1Icon } from '@radix-ui/react-icons';
 import { Box, Flex } from '@radix-ui/themes';
+import { Mark } from 'hooks/useGameQuery';
 import { ReactElement } from 'react';
-
-import { Mark } from './UseGameQuery';
 
 /**
  * Represents a Tic-Tac-Toe board.

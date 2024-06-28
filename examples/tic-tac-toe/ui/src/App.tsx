@@ -7,11 +7,10 @@ import { ConnectButton, useCurrentAccount, useSuiClientContext } from '@mysten/d
 import { isValidSuiObjectId, normalizeSuiObjectId } from '@mysten/sui/utils';
 import { FrameIcon } from '@radix-ui/react-icons';
 import { Box, Container, Flex, Heading, Link, Text } from '@radix-ui/themes';
-
-import { networkConfig, useNetworkVariable } from './config.ts';
-import Error from './Error.tsx';
-import Game from './Game.tsx';
-import Root from './Root.tsx';
+import { Error } from 'components/Error';
+import { networkConfig, useNetworkVariable } from 'config';
+import Game from 'pages/Game';
+import Root from 'pages/Root';
 
 function App() {
 	// Ensure the app's network config matches the wallet's available networks, if the wallet is connected.

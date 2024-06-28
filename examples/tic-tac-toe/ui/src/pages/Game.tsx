@@ -7,15 +7,14 @@ import { useCurrentAccount, useSignAndExecuteTransaction, useSuiClient } from '@
 import { Transaction } from '@mysten/sui/transactions';
 import { TrashIcon } from '@radix-ui/react-icons';
 import { AlertDialog, Badge, Button, Flex } from '@radix-ui/themes';
+import { Board } from 'components/Board';
+import { Error } from 'components/Error';
+import { IDLink } from 'components/IDLink';
+import { Loading } from 'components/Loading';
+import { useNetworkVariable } from 'config';
+import { Mark, useGameQuery } from 'hooks/useGameQuery';
+import { Trophy, useTrophyQuery } from 'hooks/useTrophyQuery';
 import { ReactElement } from 'react';
-
-import { Board } from './Board';
-import { useNetworkVariable } from './config';
-import Error from './Error';
-import IDLink from './IDLink';
-import { Loading } from './Loading';
-import { Mark, useGameQuery } from './UseGameQuery';
-import { Trophy, useTrophyQuery } from './UseTrophyQuery';
 
 type Props = {
 	id: string;

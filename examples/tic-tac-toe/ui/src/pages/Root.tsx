@@ -15,9 +15,8 @@ import {
 	Text,
 	TextField,
 } from '@radix-ui/themes';
+import { CreateGame } from 'components/CreateGame';
 import { ReactElement, useState } from 'react';
-
-import CreateGame from './CreateGame';
 
 /**
  * Landing page for the root path. Displays a form for creating a new game.

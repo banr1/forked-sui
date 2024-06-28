@@ -5,9 +5,8 @@ import { useSuiClient } from '@mysten/dapp-kit';
 import { Transaction } from '@mysten/sui/transactions';
 import { normalizeSuiAddress } from '@mysten/sui/utils';
 import { useQuery, useQueryClient, UseQueryResult } from '@tanstack/react-query';
-
-import { useNetworkVariable } from './config';
-import { Kind } from './UseGameQuery';
+import { useNetworkVariable } from 'config';
+import { Kind } from 'hooks/useGameQuery';
 
 export enum Trophy {
 	None = 0,
