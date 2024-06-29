@@ -3,13 +3,14 @@
 
 import './Game.css';
 
-import { useCurrentAccount, useSignAndExecuteTransaction, useSuiClient } from '@mysten/dapp-kit';
+import { useCurrentAccount } from '@mysten/dapp-kit';
 import { TrashIcon } from '@radix-ui/react-icons';
 import { AlertDialog, Badge, Button, Flex } from '@radix-ui/themes';
 import { Board } from 'components/Board';
 import { Error } from 'components/Error';
 import { IDLink } from 'components/IDLink';
 import { Loading } from 'components/Loading';
+import { useExecutor } from 'hooks/useExecutor';
 import { Game as GameData, Mark, useGameQuery } from 'hooks/useGameQuery';
 import { useTransactions } from 'hooks/useTransactions';
 import { Trophy, useTrophyQuery } from 'hooks/useTrophyQuery';
@@ -57,11 +58,10 @@ enum Winner {
 export default function Game({ id }: Props): ReactElement {
 	const account = useCurrentAccount();
 	const tx = useTransactions()!!;
+	const signAndExecute = useExecutor();
 
-	const client = useSuiClient();
 	const [game, invalidateGame] = useGameQuery(id);
 	const [trophy, invalidateTrophy] = useTrophyQuery(game?.data);
-	const { mutate: signAndExecute } = useSignAndExecuteTransaction();
 
 	if (game.status === 'pending') {
 		return <Loading />;
@@ -101,20 +101,10 @@ export default function Game({ id }: Props): ReactElement {
 	const empty = Turn.Yours == player && endState === Trophy.None ? mark : Mark._;
 
 	const onMove = (row: number, col: number) => {
-		signAndExecute(
-			{
-				transaction: tx.placeMark(game.data, row, col),
-			},
-			{
-				onSuccess: ({ digest }) => {
-					client.waitForTransaction({ digest }).then(invalidateGame).then(invalidateTrophy);
-				},
-
-				onError: (error) => {
-					console.error('Failed to execute transaction', error);
-				},
-			},
-		);
+		signAndExecute({ tx: tx.placeMark(game.data, row, col) }, () => {
+			invalidateGame();
+			invalidateTrophy();
+		});
 	};
 
 	return (
@@ -219,27 +209,13 @@ function WinIndicator({ winner }: { winner: Winner }): ReactElement | null {
 
 function DeleteButton({ game }: { game: GameData }): ReactElement {
 	const tx = useTransactions()!!;
-	const client = useSuiClient();
-	const { mutate: signAndExecute } = useSignAndExecuteTransaction();
+	const signAndExecute = useExecutor();
 
 	const onDelete = () => {
-		signAndExecute(
-			{
-				transaction: tx.burn(game),
-			},
-			{
-				onSuccess: ({ digest }) => {
-					client.waitForTransaction({ digest }).then(() => {
-						// Navigate back to homepage, because the game is gone now.
-						window.location.href = '/';
-					});
-				},
-
-				onError: (error) => {
-					console.error('Failed to execute transaction', error);
-				},
-			},
-		);
+		signAndExecute({ tx: tx.burn(game) }, () => {
+			// Navigate back to homepage, because the game is gone now.
+			window.location.href = '/';
+		});
 	};
 
 	return (

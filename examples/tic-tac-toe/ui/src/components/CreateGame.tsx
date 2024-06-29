@@ -1,10 +1,8 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-import { useSignAndExecuteTransaction, useSuiClient } from '@mysten/dapp-kit';
-import { Transaction } from '@mysten/sui/transactions';
 import { Button } from '@radix-ui/themes';
-import { useNetworkVariable } from 'config';
+import { useExecutor } from 'hooks/useExecutor';
 import { Kind } from 'hooks/useGameQuery';
 import { useTransactions } from 'hooks/useTransactions';
 import { ReactElement, ReactNode } from 'react';
@@ -34,39 +32,24 @@ export function CreateGame({
 	onCreateGame,
 	children,
 }: Props): ReactElement {
-	const client = useSuiClient();
 	// SAFETY: <App /> tests that a package exists, so Transactions
 	// builder should be available.
 	const tx = useTransactions()!!;
-	const { mutate: signAndExecute } = useSignAndExecuteTransaction();
+	const signAndExecute = useExecutor();
 
 	function onClick() {
 		signAndExecute(
 			{
-				// SAFETY: The button is disabled unless kind, player and
-				// opponent are available.
-				transaction: tx.newGame(kind!!, player!!, opponent!!),
+				tx: tx.newGame(kind!!, player!!, opponent!!),
+				options: { showEffects: true },
 			},
-			{
-				onSuccess: ({ digest }) => {
-					client
-						.waitForTransaction({
-							digest,
-							options: { showEffects: true },
-						})
-						.then((tx) => {
-							// TODO: In the owned case, we should find the game
-							// object, because the turn cap is also created.
-							const gameId = tx.effects?.created?.[0].reference?.objectId;
-							if (gameId) {
-								onCreateGame(gameId);
-							}
-						});
-				},
-
-				onError: (error) => {
-					console.error('Failed to execute transaction', error);
-				},
+			({ effects }) => {
+				// TODO: In the owned case, we should find the game object,
+				// because the turn cap is also created.
+				const gameId = effects?.created?.[0].reference?.objectId;
+				if (gameId) {
+					onCreateGame(gameId);
+				}
 			},
 		);
 	}
