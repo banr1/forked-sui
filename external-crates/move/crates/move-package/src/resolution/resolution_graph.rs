@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use anyhow::{bail, Context, Result};
+use itertools::Itertools;
 use move_command_line_common::files::{
     extension_equals, find_filenames, find_move_filenames, FileHash, MOVE_COMPILED_EXTENSION,
 };
@@ -10,6 +11,7 @@ use move_compiler::command_line::DEFAULT_OUTPUT_DIR;
 use move_compiler::{diagnostics::WarningFilters, shared::PackageConfig};
 use move_core_types::account_address::AccountAddress;
 use move_symbol_pool::Symbol;
+use std::fs::File;
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs,
@@ -18,6 +20,7 @@ use std::{
 };
 use treeline::Tree;
 
+use crate::lock_file::schema::ManagedPackage;
 use crate::package_hooks::{custom_resolve_pkg_id, PackageIdentifier};
 use crate::source_package::parsed_manifest as PM;
 use crate::{
@@ -139,8 +142,9 @@ impl ResolvedGraph {
 
             let pkg_name = resolved_pkg.source_package.package.name;
 
+            // XXX this should resolve original ID and add it to the resolving_table according to Move.lock
             resolved_pkg
-                .define_addresses_in_package(&mut resolving_table, &chain_id) // XXX this resolution has to work with publish / upgrade and resolve from manifest, but doesn't have to work locally. What happens if there is no [addresses]? Things worked without published-at (because we just error), but here we'll have to make up junk it seems when building locally.
+                .define_addresses_in_package(&mut resolving_table, &chain_id)
                 .with_context(|| format!("Resolving addresses for '{pkg_name}'"))?;
 
             for (dep_id, dep, _pkg) in graph.immediate_dependencies(pkg_id, dep_mode) {
@@ -346,6 +350,8 @@ impl Package {
         })
     }
 
+    /// Defining addresses in a package is done as follows:
+    /// ...
     fn define_addresses_in_package(
         &self,
         resolving_table: &mut ResolvingTable,
@@ -357,6 +363,30 @@ impl Package {
                 &self.source_package.package.name
             )
         })?;
+        let lock_file = self.package_path.join(SourcePackageLayout::Lock.path());
+        let original_id: Option<String> = {
+            match File::open(lock_file) {
+                Ok(mut lock_file) => {
+                    let managed_packages = ManagedPackage::read(&mut lock_file).ok();
+                    managed_packages
+                        .and_then(|m| {
+                            m.into_iter().find_or_first(|(_, v)| {
+                                let Some(chain_id) = chain_id else {
+                                    return false;
+                                };
+                                v.chain_id == *chain_id
+                            })
+                        })
+                        .map(|(_, v)| v.original_published_id)
+                }
+                Err(_) => None,
+            }
+        };
+        println!(
+            "Found original id {:#?} for {}",
+            original_id,
+            self.package_path.display()
+        );
         for (name, addr) in self.source_package.addresses.iter().flatten() {
             resolving_table.define((pkg_id, *name), *addr)?;
         }
