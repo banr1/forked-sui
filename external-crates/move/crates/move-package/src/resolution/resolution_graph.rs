@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use anyhow::{bail, Context, Result};
-use itertools::Itertools;
 use move_command_line_common::files::{
     extension_equals, find_filenames, find_move_filenames, FileHash, MOVE_COMPILED_EXTENSION,
 };
@@ -12,6 +11,7 @@ use move_compiler::{diagnostics::WarningFilters, shared::PackageConfig};
 use move_core_types::account_address::AccountAddress;
 use move_symbol_pool::Symbol;
 use std::fs::File;
+use std::str::FromStr;
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs,
@@ -363,34 +363,46 @@ impl Package {
                 &self.source_package.package.name
             )
         })?;
-        let lock_file = self.package_path.join(SourcePackageLayout::Lock.path());
-        let original_id: Option<String> = {
-            match File::open(lock_file) {
-                Ok(mut lock_file) => {
-                    let managed_packages = ManagedPackage::read(&mut lock_file).ok();
-                    managed_packages
-                        .and_then(|m| {
-                            m.into_iter().find_or_first(|(_, v)| {
-                                let Some(chain_id) = chain_id else {
-                                    return false;
-                                };
-                                v.chain_id == *chain_id
-                            })
-                        })
-                        .map(|(_, v)| v.original_published_id)
-                }
-                Err(_) => None,
-            }
-        };
-        println!(
-            "Found original id {:#?} for {}",
-            original_id,
-            self.package_path.display()
-        );
+        // Identify the named address with address ZERO
+        // Lookup original ID if any, and use that.
         for (name, addr) in self.source_package.addresses.iter().flatten() {
-            resolving_table.define((pkg_id, *name), *addr)?;
+            if *addr != Some(AccountAddress::ZERO) {
+                resolving_table.define((pkg_id, *name), *addr)?;
+                continue;
+            };
+            let original_id = self.resolve_original_id_from_lock(chain_id);
+            if original_id.is_some() {
+                println!(
+                    "Found original id {:#?} for {}, substituting for 0x0 in {}",
+                    original_id,
+                    self.package_path.display(),
+                    *name
+                );
+                resolving_table.define((pkg_id, *name), original_id)?;
+            } else {
+                resolving_table.define((pkg_id, *name), *addr)?;
+            }
         }
         Ok(())
+    }
+
+    /// chain-id is some: if found: use that addy. if not found, return None => means 0x0 will remain, implies unpublished
+    /// chain-id is none: return None => means 0x0 will remain (could return first, but why would it make sense to do that?)
+    fn resolve_original_id_from_lock(&self, chain_id: &Option<String>) -> Option<AccountAddress> {
+        let lock_file = self.package_path.join(SourcePackageLayout::Lock.path());
+        match File::open(lock_file) {
+            Ok(mut lock_file) => {
+                let managed_packages = ManagedPackage::read(&mut lock_file).ok();
+                managed_packages
+                    .and_then(|m| {
+                        let chain_id = chain_id.as_ref()?;
+                        m.into_iter().find(|(_, v)| v.chain_id == *chain_id)
+                    })
+                    // XXX fix unwrap
+                    .map(|(_, v)| AccountAddress::from_str(&v.original_published_id).unwrap())
+            }
+            Err(_) => None,
+        }
     }
 
     fn process_dependency(
