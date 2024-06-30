@@ -44,7 +44,6 @@ export function NewSharedGame() {
 	return (
 		<>
 			<TextField.Root
-				id="opponent"
 				size="2"
 				mb="2"
 				placeholder="Opponent address"
