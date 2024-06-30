@@ -13,7 +13,7 @@ import { ReactElement } from 'react';
 export default function Root(): ReactElement {
 	return (
 		<Container m="2">
-			<Heading size="5" mx="4">
+			<Heading size="9" mb="9">
 				New game
 			</Heading>
 			<Tabs.Root defaultValue="owned">
