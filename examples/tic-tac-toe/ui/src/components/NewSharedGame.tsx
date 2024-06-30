@@ -29,7 +29,7 @@ export function NewSharedGame() {
 			{
 				// SAFETY: Button is only enabled when player and opponent are
 				// available.
-				tx: tx.newGame('shared', player!!, opponent!!),
+				tx: tx.newSharedGame(player!!, opponent!!),
 				options: { showEffects: true },
 			},
 			({ effects }) => {

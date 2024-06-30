@@ -22,16 +22,11 @@ export class Transactions {
 		this.packageId = packageId;
 	}
 
-	newGame(kind: Kind, player: string, opponent: string): Transaction {
-		if (kind === 'owned') {
-			// TODO: Transfer to multi-sig in "owned" case.
-			throw new Error('owned (multi-sig) game not supported yet.');
-		}
-
+	newSharedGame(player: string, opponent: string): Transaction {
 		const tx = new Transaction();
 
 		tx.moveCall({
-			target: `${this.packageId}::${kind}::new`,
+			target: `${this.packageId}::shared::new`,
 			arguments: [tx.pure.address(player), tx.pure.address(opponent)],
 		});
 
