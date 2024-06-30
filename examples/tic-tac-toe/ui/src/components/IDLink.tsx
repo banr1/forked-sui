@@ -1,6 +1,7 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
+import { formatAddress } from '@mysten/sui/utils';
 import { CheckIcon, CopyIcon } from '@radix-ui/react-icons';
 import { Button, Flex, Link, Tooltip } from '@radix-ui/themes';
 import { useNetworkVariable } from 'config';
@@ -39,7 +40,7 @@ export function IDLink({ id, size, display }: Props): ReactElement {
 		<Flex align="center" display={display}>
 			<Tooltip content={id}>
 				<Link href={explorer(id)} target="_blank" size={size}>
-					{truncateId(id)}
+					{formatAddress(id)}
 				</Link>
 			</Tooltip>
 			<Tooltip content="Copy Object ID">
@@ -49,8 +50,4 @@ export function IDLink({ id, size, display }: Props): ReactElement {
 			</Tooltip>
 		</Flex>
 	);
-}
-
-function truncateId(id: string) {
-	return id.length <= 9 ? id : id.slice(0, 3) + '...' + id.slice(-3);
 }
