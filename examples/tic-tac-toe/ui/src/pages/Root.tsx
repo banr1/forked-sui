@@ -3,7 +3,7 @@
 
 import { GlobeIcon, LockClosedIcon } from '@radix-ui/react-icons';
 import { Container, Heading, Tabs, Text } from '@radix-ui/themes';
-import { Error } from 'components/Error';
+import { NewMultisigGame } from 'components/NewMultisigGame';
 import { NewSharedGame } from 'components/NewSharedGame';
 import { ReactElement } from 'react';
 
@@ -22,7 +22,7 @@ export default function Root(): ReactElement {
 					<Kind value="shared" icon={<GlobeIcon />} label="Shared" />
 				</Tabs.List>
 				<Tabs.Content value="owned">
-					<Error title="Not supported">Multi-sig games not supported yet.</Error>
+					<NewMultisigGame />
 				</Tabs.Content>
 				<Tabs.Content value="shared">
 					<NewSharedGame />

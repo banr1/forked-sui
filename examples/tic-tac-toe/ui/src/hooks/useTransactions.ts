@@ -1,8 +1,10 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
+import { PublicKey } from '@mysten/sui/cryptography';
 import { Transaction } from '@mysten/sui/transactions';
 import { useNetworkVariable } from 'config';
+import { multisigAddress } from 'Multisig';
 
 import { Game, Kind } from './useGameQuery';
 
@@ -29,6 +31,19 @@ export class Transactions {
 			target: `${this.packageId}::shared::new`,
 			arguments: [tx.pure.address(player), tx.pure.address(opponent)],
 		});
+
+		return tx;
+	}
+
+	newMultisigGame(player: PublicKey, opponent: PublicKey): Transaction {
+		const tx = new Transaction();
+
+		const game = tx.moveCall({
+			target: `${this.packageId}::owned::new`,
+			arguments: [tx.pure.address(player.toSuiAddress()), tx.pure.address(opponent.toSuiAddress())],
+		});
+
+		tx.transferObjects([game], multisigAddress([player, opponent]));
 
 		return tx;
 	}
