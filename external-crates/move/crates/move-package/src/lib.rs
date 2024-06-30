@@ -318,6 +318,7 @@ impl BuildConfig {
             dependency_graph,
             self,
             &mut dependency_cache,
+            chain_id,
             progress_output,
         )
     }

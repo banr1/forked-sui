@@ -79,6 +79,7 @@ impl ResolvedGraph {
         graph: DG::DependencyGraph,
         build_options: BuildConfig,
         dependency_cache: &mut DependencyCache,
+        chain_id: Option<String>,
         progress_output: &mut Progress,
     ) -> Result<ResolvedGraph> {
         let mut package_table = PackageTable::new();
@@ -139,7 +140,7 @@ impl ResolvedGraph {
             let pkg_name = resolved_pkg.source_package.package.name;
 
             resolved_pkg
-                .define_addresses_in_package(&mut resolving_table) // XXX this resolution has to work with publish / upgrade and resolve from manifest, but doesn't have to work locally. What happens if there is no [addresses]? Things worked without published-at (because we just error), but here we'll have to make up junk it seems when building locally.
+                .define_addresses_in_package(&mut resolving_table, &chain_id) // XXX this resolution has to work with publish / upgrade and resolve from manifest, but doesn't have to work locally. What happens if there is no [addresses]? Things worked without published-at (because we just error), but here we'll have to make up junk it seems when building locally.
                 .with_context(|| format!("Resolving addresses for '{pkg_name}'"))?;
 
             for (dep_id, dep, _pkg) in graph.immediate_dependencies(pkg_id, dep_mode) {
@@ -345,7 +346,11 @@ impl Package {
         })
     }
 
-    fn define_addresses_in_package(&self, resolving_table: &mut ResolvingTable) -> Result<()> {
+    fn define_addresses_in_package(
+        &self,
+        resolving_table: &mut ResolvingTable,
+        chain_id: &Option<String>,
+    ) -> Result<()> {
         let pkg_id = custom_resolve_pkg_id(&self.source_package).with_context(|| {
             format!(
                 "Resolving package name for '{}'",
