@@ -390,19 +390,15 @@ impl Package {
     /// chain-id is none: return None => means 0x0 will remain (could return first, but why would it make sense to do that?)
     fn resolve_original_id_from_lock(&self, chain_id: &Option<String>) -> Option<AccountAddress> {
         let lock_file = self.package_path.join(SourcePackageLayout::Lock.path());
-        match File::open(lock_file) {
-            Ok(mut lock_file) => {
-                let managed_packages = ManagedPackage::read(&mut lock_file).ok();
-                managed_packages
-                    .and_then(|m| {
-                        let chain_id = chain_id.as_ref()?;
-                        m.into_iter().find(|(_, v)| v.chain_id == *chain_id)
-                    })
-                    // XXX fix unwrap
-                    .map(|(_, v)| AccountAddress::from_str(&v.original_published_id).unwrap())
-            }
-            Err(_) => None,
-        }
+        let mut lock_file = File::open(lock_file).ok()?; // XXX Maybe a bit too lax with error handling here
+        let managed_packages = ManagedPackage::read(&mut lock_file).ok(); // XXX Same thing here
+        managed_packages
+            .and_then(|m| {
+                let chain_id = chain_id.as_ref()?;
+                m.into_iter().find(|(_, v)| v.chain_id == *chain_id)
+            })
+            // XXX fix unwrap
+            .map(|(_, v)| AccountAddress::from_str(&v.original_published_id).unwrap())
     }
 
     fn process_dependency(
