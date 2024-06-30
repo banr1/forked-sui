@@ -9,6 +9,8 @@ import { useExecutor } from 'hooks/useExecutor';
 import { useTransactions } from 'hooks/useTransactions';
 import { ReactElement, useState } from 'react';
 
+import { ComputedField } from './ComputedField';
+
 /**
  * Form for creating a new shared game.
  */
@@ -43,6 +45,7 @@ export function NewSharedGame() {
 
 	return (
 		<>
+			<ComputedField label="Your address" value={player} />
 			<TextField.Root
 				size="2"
 				mb="2"
