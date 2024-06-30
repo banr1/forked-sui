@@ -1622,7 +1622,7 @@ fn compile_package_simple(
         print_diags_to_stderr: false,
         chain_id: chain_id.clone(),
     };
-    let resolution_graph = config.resolution_graph(package_path)?;
+    let resolution_graph = config.resolution_graph(package_path, chain_id.clone())?;
 
     Ok(build_from_resolution_graph(
         resolution_graph,
@@ -1733,10 +1733,9 @@ pub(crate) async fn compile_package(
         config,
         run_bytecode_verifier,
         print_diags_to_stderr,
-        chain_id,
+        chain_id: chain_id.clone(),
     };
-    let resolution_graph = config.resolution_graph(package_path)?;
-    let chain_id = read_api.get_chain_identifier().await.ok();
+    let resolution_graph = config.resolution_graph(package_path, chain_id.clone())?;
     let (package_id, dependencies) = gather_published_ids(&resolution_graph, chain_id.clone());
     check_invalid_dependencies(&dependencies.invalid)?;
     if !with_unpublished_dependencies {

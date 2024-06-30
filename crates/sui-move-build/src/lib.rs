@@ -162,7 +162,7 @@ impl BuildConfig {
         let print_diags_to_stderr = self.print_diags_to_stderr;
         let run_bytecode_verifier = self.run_bytecode_verifier;
         let chain_id = self.chain_id.clone();
-        let resolution_graph = self.resolution_graph(path)?;
+        let resolution_graph = self.resolution_graph(path, None)?;
         build_from_resolution_graph(
             resolution_graph,
             run_bytecode_verifier,
@@ -171,7 +171,11 @@ impl BuildConfig {
         )
     }
 
-    pub fn resolution_graph(mut self, path: &Path) -> SuiResult<ResolvedGraph> {
+    pub fn resolution_graph(
+        mut self,
+        path: &Path,
+        _chain_id: Option<String>,
+    ) -> SuiResult<ResolvedGraph> {
         if let Some(err_msg) = set_sui_flavor(&mut self.config) {
             return Err(SuiError::ModuleBuildFailure { error: err_msg });
         }

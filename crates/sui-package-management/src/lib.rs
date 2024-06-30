@@ -156,3 +156,5 @@ fn published_at_property(package: &Package) -> Result<String, PublishedAtError> 
     };
     Ok(value.to_string())
 }
+
+pub fn resolve_alias() {}

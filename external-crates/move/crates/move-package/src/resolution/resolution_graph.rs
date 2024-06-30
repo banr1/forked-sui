@@ -139,7 +139,7 @@ impl ResolvedGraph {
             let pkg_name = resolved_pkg.source_package.package.name;
 
             resolved_pkg
-                .define_addresses_in_package(&mut resolving_table)
+                .define_addresses_in_package(&mut resolving_table) // XXX this resolution has to work with publish / upgrade and resolve from manifest, but doesn't have to work locally. What happens if there is no [addresses]? Things worked without published-at (because we just error), but here we'll have to make up junk it seems when building locally.
                 .with_context(|| format!("Resolving addresses for '{pkg_name}'"))?;
 
             for (dep_id, dep, _pkg) in graph.immediate_dependencies(pkg_id, dep_mode) {
