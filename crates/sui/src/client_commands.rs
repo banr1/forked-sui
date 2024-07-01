@@ -872,12 +872,13 @@ impl SuiClientCommands {
                             error: format!("Failed to canonicalize package path: {}", e),
                         })?;
 
-                let prep_result = sui_package_management::prepare_package_id(
+                let prep_result = sui_package_management::set_package_id(
                     &package_path,
                     build_config
                         .clone() // XXX avoid clone
                         .install_dir,
                     client.read_api(),
+                    "0x0",
                 )
                 .await;
                 println!("prep result: {:#?}", prep_result);
@@ -898,6 +899,18 @@ impl SuiClientCommands {
                         env_alias,
                     )
                     .await?;
+
+                let restore_result = sui_package_management::set_package_id(
+                    &package_path,
+                    build_config
+                        .clone() // XXX avoid clone
+                        .install_dir,
+                    client.read_api(),
+                    prep_result.unwrap().unwrap().as_str(), // XXX nasty
+                )
+                .await;
+                println!("restore result: {:#?}", restore_result);
+
                 let tx_kind = client
                     .transaction_builder()
                     .upgrade_tx_kind(

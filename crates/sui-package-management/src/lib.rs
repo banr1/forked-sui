@@ -95,10 +95,11 @@ pub async fn update_lock_file(
 }
 
 /// XXX For re-publish or upgrade purposes
-pub async fn prepare_package_id(
+pub async fn set_package_id(
     package_path: &PathBuf,
     install_dir: Option<PathBuf>,
     read_api: &ReadApi,
+    id: &str,
 ) -> Result<Option<String>, anyhow::Error> {
     let lock_file_path = package_path.join(SourcePackageLayout::Lock.path());
     if let Ok(mut lock_file) = File::open(lock_file_path.clone()) {
@@ -112,7 +113,7 @@ pub async fn prepare_package_id(
                 if let Ok(mut lock_for_update) =
                     LockFile::from(install_dir.clone(), &lock_file_path)
                 {
-                    lock_file::schema::reset_original_id(&mut lock_for_update, &env).unwrap(); // XXX fix unwrap
+                    lock_file::schema::set_original_id(&mut lock_for_update, &env, id).unwrap(); // XXX fix unwrap
                     lock_for_update.commit(lock_file_path)?;
                     return Ok(Some(v.original_published_id));
                 }
@@ -120,10 +121,6 @@ pub async fn prepare_package_id(
         }
     };
     Ok(None)
-}
-
-pub async fn restore_package_id() -> Result<(), anyhow::Error> {
-    Ok(())
 }
 
 /// Find the published on-chain ID in the `Move.lock` or `Move.toml` file.
