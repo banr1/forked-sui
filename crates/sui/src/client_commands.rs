@@ -11,7 +11,7 @@ use crate::{
 use std::{
     collections::{btree_map::Entry, BTreeMap},
     fmt::{Debug, Display, Formatter, Write},
-    fs::{self, File},
+    fs,
     path::{Path, PathBuf},
     str::FromStr,
     sync::Arc,
@@ -29,11 +29,7 @@ use fastcrypto::{
 use move_binary_format::CompiledModule;
 use move_bytecode_verifier_meter::Scope;
 use move_core_types::language_storage::TypeTag;
-use move_package::{
-    lock_file::{self, schema::ManagedPackage, LockFile},
-    source_package::layout::SourcePackageLayout,
-    BuildConfig as MoveBuildConfig,
-};
+use move_package::BuildConfig as MoveBuildConfig;
 use prometheus::Registry;
 use serde::Serialize;
 use serde_json::{json, Value};
@@ -871,8 +867,7 @@ impl SuiClientCommands {
                         .map_err(|e| SuiError::ModulePublishFailure {
                             error: format!("Failed to canonicalize package path: {}", e),
                         })?;
-
-                let prep_result = sui_package_management::set_package_id(
+                let previous_id = sui_package_management::set_package_id(
                     &package_path,
                     build_config
                         .clone() // XXX avoid clone
@@ -881,8 +876,6 @@ impl SuiClientCommands {
                     "0x0",
                 )
                 .await;
-                println!("prep result: {:#?}", prep_result);
-
                 let env_alias = context
                     .config
                     .get_active_env()
@@ -899,17 +892,15 @@ impl SuiClientCommands {
                         env_alias,
                     )
                     .await?;
-
-                let restore_result = sui_package_management::set_package_id(
+                let _ = sui_package_management::set_package_id(
                     &package_path,
                     build_config
                         .clone() // XXX avoid clone
                         .install_dir,
                     client.read_api(),
-                    prep_result.unwrap().unwrap().as_str(), // XXX nasty
+                    previous_id.unwrap().unwrap().as_str(), // XXX nasty
                 )
                 .await;
-                println!("restore result: {:#?}", restore_result);
 
                 let tx_kind = client
                     .transaction_builder()
@@ -974,6 +965,15 @@ impl SuiClientCommands {
                 let sender = context.try_get_object_owner(&opts.gas).await?;
                 let sender = sender.unwrap_or(context.active_address()?);
                 let client = context.get_client().await?;
+                let previous_id = sui_package_management::set_package_id(
+                    &package_path,
+                    build_config
+                        .clone() // XXX avoid clone
+                        .install_dir,
+                    client.read_api(),
+                    "0x0",
+                )
+                .await;
                 let package_path =
                     package_path
                         .canonicalize()
@@ -988,6 +988,15 @@ impl SuiClientCommands {
                     skip_dependency_verification,
                 )
                 .await?;
+                let _ = sui_package_management::set_package_id(
+                    &package_path,
+                    build_config
+                        .clone() // XXX avoid clone
+                        .install_dir,
+                    client.read_api(),
+                    previous_id.unwrap().unwrap().as_str(), // XXX nasty
+                )
+                .await;
 
                 let tx_kind = client
                     .transaction_builder()

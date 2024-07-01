@@ -3,7 +3,7 @@
 
 use anyhow::{bail, Context};
 use std::fs::File;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use move_package::{
@@ -96,7 +96,7 @@ pub async fn update_lock_file(
 
 /// XXX For re-publish or upgrade purposes
 pub async fn set_package_id(
-    package_path: &PathBuf,
+    package_path: &Path,
     install_dir: Option<PathBuf>,
     read_api: &ReadApi,
     id: &str,
