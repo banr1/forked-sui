@@ -11,7 +11,7 @@ use crate::{
 use std::{
     collections::{btree_map::Entry, BTreeMap},
     fmt::{Debug, Display, Formatter, Write},
-    fs,
+    fs::{self, File},
     path::{Path, PathBuf},
     str::FromStr,
     sync::Arc,
@@ -29,7 +29,11 @@ use fastcrypto::{
 use move_binary_format::CompiledModule;
 use move_bytecode_verifier_meter::Scope;
 use move_core_types::language_storage::TypeTag;
-use move_package::BuildConfig as MoveBuildConfig;
+use move_package::{
+    lock_file::{self, schema::ManagedPackage, LockFile},
+    source_package::layout::SourcePackageLayout,
+    BuildConfig as MoveBuildConfig,
+};
 use prometheus::Registry;
 use serde::Serialize;
 use serde_json::{json, Value};
@@ -867,6 +871,17 @@ impl SuiClientCommands {
                         .map_err(|e| SuiError::ModulePublishFailure {
                             error: format!("Failed to canonicalize package path: {}", e),
                         })?;
+
+                let prep_result = sui_package_management::prepare_package_id(
+                    &package_path,
+                    build_config
+                        .clone() // XXX avoid clone
+                        .install_dir,
+                    client.read_api(),
+                )
+                .await;
+                println!("prep result: {:#?}", prep_result);
+
                 let env_alias = context
                     .config
                     .get_active_env()

@@ -346,6 +346,31 @@ pub enum ManagedAddressUpdate {
     },
 }
 
+/// XXX Special case to re-publish or prepare upgrade.
+pub fn reset_original_id(file: &mut LockFile, environment: &str) -> Result<()> {
+    use toml_edit::{value, Document, Table};
+    let mut toml_string = String::new();
+    file.read_to_string(&mut toml_string)?;
+    let mut toml = toml_string.parse::<Document>()?;
+    let env_table = toml
+        .entry(ENV_TABLE_NAME)
+        .or_insert_with(|| Item::Table(Table::new())) // XXX fix this: should not have to create
+        .as_table_mut()
+        .ok_or_else(|| anyhow!("Could not find or create 'env' table in Move.lock"))?
+        .entry(environment)
+        .or_insert_with(|| Item::Table(Table::new())) // XXX fix this: should not have to create
+        .as_table_mut()
+        .ok_or_else(|| anyhow!("Could not find or create {environment} table in Move.lock"))?;
+    env_table[ORIGINAL_PUBLISHED_ID_KEY] = value("0x0");
+
+    file.set_len(0)?;
+    file.rewind()?;
+    write!(file, "{}", toml)?;
+    file.flush()?;
+    file.rewind()?;
+    Ok(())
+}
+
 /// Saves published or upgraded package addresses in the lock file.
 pub fn update_managed_address(
     file: &mut LockFile,

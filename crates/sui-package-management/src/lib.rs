@@ -13,7 +13,7 @@ use move_package::{
 };
 use move_symbol_pool::Symbol;
 use sui_json_rpc_types::{get_new_package_obj_from_response, SuiTransactionBlockResponse};
-use sui_sdk::wallet_context::WalletContext;
+use sui_sdk::{apis::ReadApi, wallet_context::WalletContext};
 use sui_types::base_types::ObjectID;
 
 const PUBLISHED_AT_MANIFEST_FIELD: &str = "published-at";
@@ -94,6 +94,38 @@ pub async fn update_lock_file(
     Ok(())
 }
 
+/// XXX For re-publish or upgrade purposes
+pub async fn prepare_package_id(
+    package_path: &PathBuf,
+    install_dir: Option<PathBuf>,
+    read_api: &ReadApi,
+) -> Result<Option<String>, anyhow::Error> {
+    let lock_file_path = package_path.join(SourcePackageLayout::Lock.path());
+    if let Ok(mut lock_file) = File::open(lock_file_path.clone()) {
+        let chain_id = read_api.get_chain_identifier().await.ok();
+        if let Some(chain_id) = chain_id {
+            let managed_packages = ManagedPackage::read(&mut lock_file).ok();
+            let managed_package =
+                managed_packages.and_then(|m| m.into_iter().find(|(_, v)| v.chain_id == *chain_id));
+            if let Some((env, v)) = managed_package {
+                let install_dir = install_dir.unwrap_or(PathBuf::from("."));
+                if let Ok(mut lock_for_update) =
+                    LockFile::from(install_dir.clone(), &lock_file_path)
+                {
+                    lock_file::schema::reset_original_id(&mut lock_for_update, &env).unwrap(); // XXX fix unwrap
+                    lock_for_update.commit(lock_file_path)?;
+                    return Ok(Some(v.original_published_id));
+                }
+            }
+        }
+    };
+    Ok(None)
+}
+
+pub async fn restore_package_id() -> Result<(), anyhow::Error> {
+    Ok(())
+}
+
 /// Find the published on-chain ID in the `Move.lock` or `Move.toml` file.
 /// A chain ID of `None` means that we will only try to resolve a published ID from the Move.toml.
 /// The published ID is resolved from the `Move.toml` if the Move.lock does not exist.
@@ -156,5 +188,3 @@ fn published_at_property(package: &Package) -> Result<String, PublishedAtError> 
     };
     Ok(value.to_string())
 }
-
-pub fn resolve_alias() {}
