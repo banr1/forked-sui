@@ -988,15 +988,18 @@ impl SuiClientCommands {
                     skip_dependency_verification,
                 )
                 .await?;
-                let _ = sui_package_management::set_package_id(
-                    &package_path,
-                    build_config
-                        .clone() // XXX avoid clone
-                        .install_dir,
-                    client.read_api(),
-                    previous_id.unwrap().unwrap().as_str(), // XXX nasty
-                )
-                .await;
+                if let Ok(Some(previous_id)) = previous_id {
+                    println!("Warning: overwriting previous publish!");
+                    let _ = sui_package_management::set_package_id(
+                        &package_path,
+                        build_config
+                            .clone() // XXX avoid clone
+                            .install_dir,
+                        client.read_api(),
+                        previous_id.as_str(), // XXX nasty
+                    )
+                    .await;
+                }
 
                 let tx_kind = client
                     .transaction_builder()
